@@ -24,8 +24,8 @@ packages:
 - "gettext"
 reference_datetime: "2013-06-01 00:00:00"
 remotes:
-- "url": "https://github.com/thokon00/faircoin.git"
-  "dir": "faircoin"
+- "url": "https://github.com/FairCoinTeam/fair-coin.git"
+  "dir": "fair-coin"
 files:
 - "faircoin-deps-linux32-gitian-r1.zip"
 - "faircoin-deps-linux64-gitian-r1.zip"

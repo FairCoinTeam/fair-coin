@@ -20,8 +20,8 @@ packages:
 - "gettext"
 reference_datetime: "2013-06-01 00:00:00"
 remotes:
-- "url": "https://github.com/thokon00/faircoin.git"
-  "dir": "faircoin"
+- "url": "https://github.com/FairCoinTeam/fair-coin.git"
+  "dir": "fair-coin"
 files:
 - "qt-win32-4.8.5-gitian-r1.zip"
 - "boost-win32-1.55.0-gitian-r1.zip"
