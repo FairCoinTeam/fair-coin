@@ -1,0 +1,90 @@
+---
+name: "faircoin"
+suites:
+- "precise"
+architectures:
+- "i386"
+packages:
+- "mingw-w64"
+- "g++-mingw-w64"
+- "git-core"
+- "unzip"
+- "nsis"
+- "faketime"
+- "autoconf2.13"
+- "libtool"
+- "automake"
+- "pkg-config"
+- "bsdmainutils"
+- "qt4-linguist-tools"
+- "gettext"
+reference_datetime: "2013-06-01 00:00:00"
+remotes:
+- "url": "https://github.com/thokon00/faircoin.git"
+  "dir": "faircoin"
+files:
+- "qt-win32-4.8.5-gitian-r1.zip"
+- "boost-win32-1.55.0-gitian-r1.zip"
+- "boost-win64-1.55.0-gitian-r1.zip"
+- "faircoin-deps-win32-gitian-r1.zip"
+- "faircoin-deps-win64-gitian-r1.zip"
+- "protobuf-win32-2.5.0-gitian-r1.zip"
+- "protobuf-win64-2.5.0-gitian-r1.zip"
+script: |
+  # Defines
+  export TZ=UTC
+  INDIR=$HOME/build
+  OPTFLAGS='-O2'
+  TEMPDIR="$HOME/tempdir"
+  NEEDDIST=1
+  #for BITS in 32 64; do # for architectures
+  for BITS in 32; do # for now we only build for 32bit arch
+    #
+    STAGING=$HOME/staging${BITS}
+    BUILDDIR=$HOME/build${BITS}
+    BINDIR=$OUTDIR/$BITS
+    if [ "$BITS" == "32" ]; then
+      HOST=i686-w64-mingw32
+    else
+      HOST=x86_64-w64-mingw32
+    fi
+    export PATH=$STAGING/host/bin:$PATH
+    mkdir -p $STAGING $BUILDDIR $BINDIR
+    #
+    cd $STAGING
+    unzip $INDIR/qt-win${BITS}-4.8.5-gitian-r1.zip
+    unzip $INDIR/boost-win${BITS}-1.55.0-gitian-r1.zip
+    unzip $INDIR/faircoin-deps-win${BITS}-gitian-r1.zip
+    unzip $INDIR/protobuf-win${BITS}-2.5.0-gitian-r1.zip
+    if [ "$NEEDDIST" == "1" ]; then
+      # Make source code archive which is architecture independent so it only needs to be done once
+      cd $HOME/build/faircoin
+      ./autogen.sh
+      ./configure --bindir=$OUTDIR --prefix=$STAGING --host=$HOST --disable-tests --with-qt-plugindir=$STAGING/plugins --with-qt-incdir=$STAGING/include --with-qt-bindir=$STAGING/bin --with-boost=$STAGING --disable-maintainer-mode --with-protoc-bindir=$STAGING/host/bin --disable-dependency-tracking CPPFLAGS="-I$STAGING/include ${OPTFLAGS}" LDFLAGS="-L$STAGING/lib ${OPTFLAGS}" CXXFLAGS="-frandom-seed=faircoin ${OPTFLAGS}"
+      make dist
+      DISTNAME=`echo faircoin-*.tar.gz`
+      NEEDDIST=0
+    fi
+    # Build platform-dependent executables from source archive
+    cd $BUILDDIR
+    mkdir -p distsrc
+    cd distsrc
+    tar --strip-components=1 -xf $HOME/build/faircoin/$DISTNAME
+    ./configure --enable-upnp-default --bindir=$BINDIR --prefix=$STAGING --host=$HOST --disable-hardening --disable-tests --with-qt-plugindir=$STAGING/plugins --with-qt-incdir=$STAGING/include --with-qt-bindir=$STAGING/bin --with-boost=$STAGING --disable-maintainer-mode --with-protoc-bindir=$STAGING/host/bin --disable-dependency-tracking CPPFLAGS="-I$STAGING/include ${OPTFLAGS}" LDFLAGS="-L$STAGING/lib ${OPTFLAGS}" CXXFLAGS="-frandom-seed=faircoin ${OPTFLAGS}"
+    export LD_PRELOAD=/usr/lib/faketime/libfaketime.so.1
+    export FAKETIME=$REFERENCE_DATETIME
+    make $MAKEOPTS
+    make deploy
+    make install-strip
+    cp -f FairCoin-*setup*.exe $BINDIR/
+    unset LD_PRELOAD
+    unset FAKETIME
+  done # for BITS in
+
+  # sort distribution tar file and normalize user/group/mtime information for deterministic output
+  mkdir -p $OUTDIR/src
+  rm -rf $TEMPDIR
+  mkdir -p $TEMPDIR
+  cd $TEMPDIR
+  tar -xvf $HOME/build/faircoin/$DISTNAME | sort | tar --no-recursion -cT /dev/stdin --mode='u+rw,go+r-w,a+X' --owner=0 --group=0 --mtime="$REFERENCE_DATETIME" | gzip -n > $OUTDIR/src/$DISTNAME
+
