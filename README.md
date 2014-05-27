@@ -23,3 +23,13 @@ rpcpassword=changeme2
 
 addnode=194.208.12.12  
 ```
+
+---
+Build instructions:
+
+```
+./autogen.sh  
+./configure --prefix=/usr --disable-maintainer-mode --with-incompatible-bdb --disable-tests  
+make  
+```
+This will build FairCoind and FairCoin-qt client.
