@@ -56,7 +56,7 @@ extern "C" void scrypt_core(uint32_t *X, uint32_t *V);
 extern "C" void scrypt_core_2way(uint32_t *X, uint32_t *Y, uint32_t *V);
 extern "C" void scrypt_core_3way(uint32_t *X, uint32_t *Y, uint32_t *Z, uint32_t *V);
 
-#elif defined(__i386__)
+#elif defined(__i386__) || defined(__arm__)
 
 #define SCRYPT_BUFFER_SIZE (131072 + 63)
 

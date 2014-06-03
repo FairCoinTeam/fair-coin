@@ -109,6 +109,7 @@ libbitcoin_common_a_SOURCES = \
   scrypt_mine.cpp \
   scrypt-x86_64.S \
   scrypt-x86.S \
+  scrypt-arm.S \
   sync.cpp \
   util.cpp \
   version.cpp \
