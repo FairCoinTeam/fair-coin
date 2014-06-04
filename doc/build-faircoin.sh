@@ -1,6 +1,6 @@
 #!/bin/bash
 
-usage {
+usage (){
 	echo "USAGE: build-faircoin.sh [-v version] [-s SIGNER]"
 	echo "Where v(ersion) should be the next version of the wallet"
 	echo "Where s(igner) is used for the gitian signature, for example drakandar@fair-coin.org - no signer will skip signatures"
