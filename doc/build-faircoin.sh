@@ -1,16 +1,17 @@
 #!/bin/bash
 
 usage () {
-	echo "USAGE: build-faircoin.sh [-v version] [-s SIGNER]"
+	echo "USAGE: build-faircoin.sh [-v version] [-s SIGNER] [-d true/false]"
 	echo "Where v(ersion) should be the next version of the wallet"
 	echo "Where s(igner) is used for the gitian signature, for example drakandar@fair-coin.org - no signer will skip signatures"
+	echo "Where d(ownload) is used to determine if you want to download third party libraries. Defaults to TRUE"
 	exit 1
 }
 
 
 # check on options
 parseopts () {
-	while getopts ":v:s:" optname
+	while getopts ":v:s:d:" optname
 	do
     	case $optname in
     		v)
@@ -19,6 +20,10 @@ parseopts () {
     		s)
 				SIGNER=$OPTARG	
 				;;
+    		d)
+				DOWNLOAD=$OPTARG	
+				;;
+								
     		\?)
 				echo "Unknown option $OPTARG"
 				;;
@@ -62,6 +67,18 @@ parseopts () {
 		exit 3
 	fi	
 
+#Parse dynvars	
+			
+	if [ -z "$DOWNLOAD" ]
+	then
+		DOWNLOAD=true
+	fi	
+
+#Output dynvars
+	echo "----------------------------------DYNAMIC-VARS----------------------------------------"
+	echo "  DOWNLOAD=${DOWNLOAD}"
+	echo "-------------------------------END-DYNAMIC-VARS---------------------------------------"
+
 # Make sure packages are installed
 sudo apt-get install apache2 git apt-cacher-ng python-vm-builder qemu-kvm ruby git build-essential dh-autoreconf
 
@@ -77,17 +94,21 @@ git clone git://github.com/devrandom/gitian-builder.git
 #Mk dirs for inputs and download them
 mkdir gitian-builder/inputs
 cd gitian-builder/inputs
-wget 'http://miniupnp.free.fr/files/download.php?file=miniupnpc-1.9.tar.gz' -O miniupnpc-1.9.tar.gz
-wget 'https://www.openssl.org/source/openssl-1.0.1g.tar.gz'
-wget 'http://download.oracle.com/berkeley-db/db-4.8.30.NC.tar.gz'
-wget 'http://zlib.net/zlib-1.2.8.tar.gz'
-wget 'ftp://ftp.simplesystems.org/pub/png/src/history/libpng16/libpng-1.6.8.tar.gz'
-wget 'https://fukuchi.org/works/qrencode/qrencode-3.4.3.tar.bz2'
-wget 'https://downloads.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.tar.bz2'
-wget 'https://svn.boost.org/trac/boost/raw-attachment/ticket/7262/boost-mingw.patch' -O boost-mingw-gas-cross-compile-2013-03-03.patch
-wget 'https://download.qt-project.org/official_releases/qt/4.8/4.8.5/qt-everywhere-opensource-src-4.8.5.tar.gz'
-wget 'https://download.qt-project.org/archive/qt/4.6/qt-everywhere-opensource-src-4.6.4.tar.gz'
-wget 'https://protobuf.googlecode.com/files/protobuf-2.5.0.tar.bz2'
+
+if $DOWNLOAD
+then
+	wget 'http://miniupnp.free.fr/files/download.php?file=miniupnpc-1.9.tar.gz' -O miniupnpc-1.9.tar.gz
+	wget 'https://www.openssl.org/source/openssl-1.0.1g.tar.gz'
+	wget 'http://download.oracle.com/berkeley-db/db-4.8.30.NC.tar.gz'
+	wget 'http://zlib.net/zlib-1.2.8.tar.gz'
+	wget 'ftp://ftp.simplesystems.org/pub/png/src/history/libpng16/libpng-1.6.8.tar.gz'
+	wget 'https://fukuchi.org/works/qrencode/qrencode-3.4.3.tar.bz2'
+	wget 'https://downloads.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.tar.bz2'
+	wget 'https://svn.boost.org/trac/boost/raw-attachment/ticket/7262/boost-mingw.patch' -O boost-mingw-gas-cross-compile-2013-03-03.patch
+	wget 'https://download.qt-project.org/official_releases/qt/4.8/4.8.5/qt-everywhere-opensource-src-4.8.5.tar.gz'
+	wget 'https://download.qt-project.org/archive/qt/4.6/qt-everywhere-opensource-src-4.6.4.tar.gz'
+	wget 'https://protobuf.googlecode.com/files/protobuf-2.5.0.tar.bz2'
+fi
 
 #Build gitian base vm's
 cd ..
