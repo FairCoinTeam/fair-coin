@@ -495,12 +495,6 @@ if test x$boost_sleep != xyes; then
   AC_MSG_ERROR(No working boost sleep implementation found. If on ubuntu 13.10 with libboost1.54-all-dev remove libboost.1.54-all-dev and use libboost1.53-all-dev)
 fi
 
-AC_ARG_WITH([cli],
-  [AS_HELP_STRING([--with-cli],
-  [with CLI (default is yes)])],
-  [build_bitcoin_cli=$withval],
-  [build_bitcoin_cli=yes])
-
 AC_ARG_WITH([daemon],
   [AS_HELP_STRING([--with-daemon],
   [with daemon (default is yes)])],
@@ -654,7 +648,7 @@ else
 fi
 
 if test "x$use_tests$build_bitcoind$use_qt" = "xnonono"; then
-  AC_MSG_ERROR([No targets! Please specify at least one of: --enable-cli --enable-daemon --enable-gui or --enable-tests])
+  AC_MSG_ERROR([No targets! Please specify at least one of: --enable-daemon --enable-gui or --enable-tests])
 fi
 
 AM_CONDITIONAL([TARGET_DARWIN], [test x$TARGET_OS = xdarwin])
