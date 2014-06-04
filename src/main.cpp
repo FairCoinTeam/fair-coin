@@ -4360,6 +4360,8 @@ void BitcoinMiner(CWallet *pwallet, bool fProofOfStake)
         {
             strMintWarning = strMintMessage;
             Sleep(1000);
+            if (fShutdown)
+                return;
         }
         strMintWarning = "";
 
