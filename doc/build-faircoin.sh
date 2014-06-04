@@ -1,16 +1,16 @@
 #!/bin/bash
 
-function usage {
+usage {
 	echo "USAGE: build-faircoin.sh [-v version] [-s SIGNER]"
 	echo "Where v(ersion) should be the next version of the wallet"
-	echo "Where s(igner) is used for the gitian signature, for example drakandar@fair-coin.org"
+	echo "Where s(igner) is used for the gitian signature, for example drakandar@fair-coin.org - no signer will skip signatures"
 	exit 1
 }
 
 
 # check on options
 parseopts () {
-	while getopts ":v:a:" optname
+	while getopts ":v:s:" optname
 	do
     	case $optname in
     		v)
@@ -53,12 +53,6 @@ parseopts () {
 	if [ -z "$VERSION" ]
 	then
 		echo "No VERSION defined, exiting...."
-		exit 3
-	fi
-	
-	if [ -z "$SIGNER" ]
-	then
-		echo "No SIGNER defined, exiting...."
 		exit 3
 	fi
 	
@@ -121,6 +115,13 @@ mv build/out/qt-*.zip inputs/
 
 bin/gbuild ../faircoin/contrib/gitian-descriptors/protobuf-win.yml
 mv build/out/protobuf-*.zip inputs/
+
+#Check if there is a signer, if not exit.
+if [ -z "$SIGNER" ]
+then
+	echo "No SIGNER defined, exiting...."
+	exit 0
+fi
 
 # Clone gitian signatures and append to them
 cd ..
