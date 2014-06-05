@@ -134,9 +134,9 @@ Value getdifficulty(const Array& params, bool fHelp)
             "Returns the difficulty as a multiple of the minimum difficulty.");
 
     const CBlockIndex* lastPoW = GetLastBlockIndex(pindexBest, false);
-    uint nextPoW = GetNextTargetRequired(pindexBest, false);
+    unsigned int nextPoW = GetNextTargetRequired(pindexBest, false);
     const CBlockIndex* lastPoS = GetLastBlockIndex(pindexBest, true);
-    uint nextPoS = GetNextTargetRequired(pindexBest, true);
+    unsigned int nextPoS = GetNextTargetRequired(pindexBest, true);
 
     Object obj;
 
