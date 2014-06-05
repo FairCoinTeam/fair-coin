@@ -478,7 +478,7 @@ bool CTransaction::CheckTransaction() const
 
         // ppcoin: enforce minimum output amount
         if ((!txout.IsEmpty()) && txout.nValue < MIN_TXOUT_AMOUNT) {
-            printf("minamount: %I64d      nValue: %I64d", MIN_TXOUT_AMOUNT, txout.nValue);
+            printf("minamount: %s      nValue: %s", FormatMoney(MIN_TXOUT_AMOUNT).c_str(), FormatMoney(txout.nValue).c_str());
             return DoS(100, error("CTransaction::CheckTransaction() : txout.nValue below minimum"));
         }
 
@@ -1004,7 +1004,7 @@ const CBlockIndex* GetLastBlockIndex(const CBlockIndex* pindex, bool fProofOfSta
     return pindex;
 }
 
-unsigned int static GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfStake)
+unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfStake)
 {
     CBigNum bnTargetLimit = bnProofOfWorkLimit;
 
@@ -2586,11 +2586,11 @@ bool LoadBlockIndex(bool fAllowNew)
     {
         CTxDB txdb;
         string strPubKey = "";
-        if (!txdb.ReadCheckpointPubKey(strPubKey) || strPubKey != CSyncCheckpoint::strMasterPubKey)
+        if (!txdb.ReadCheckpointPubKey(strPubKey) || strPubKey != (fTestNet ? CSyncCheckpoint::strTestMasterPubKey : CSyncCheckpoint::strMainMasterPubKey))
         {
             // write checkpoint master key to db
             txdb.TxnBegin();
-            if (!txdb.WriteCheckpointPubKey(CSyncCheckpoint::strMasterPubKey))
+            if (!txdb.WriteCheckpointPubKey(fTestNet ? CSyncCheckpoint::strTestMasterPubKey : CSyncCheckpoint::strMainMasterPubKey))
                 return error("LoadBlockIndex() : failed to write new checkpoint master key to db");
             if (!txdb.TxnCommit())
                 return error("LoadBlockIndex() : failed to commit new checkpoint master key to db");

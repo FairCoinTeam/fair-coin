@@ -142,12 +142,12 @@ int main(int argc, char *argv[])
 
     // Application identification (must be set before OptionsModel is initialized,
     // as it is used to locate QSettings)
-    app.setOrganizationName("FairCoin");
-    app.setOrganizationDomain("FairCoin.su");
+    app.setOrganizationName(QAPP_ORG_NAME);
+    app.setOrganizationDomain(QAPP_ORG_DOMAIN);
     if(GetBoolArg("-testnet")) // Separate UI settings for testnet
-        app.setApplicationName("FairCoin-Qt-testnet");
+        app.setApplicationName(QAPP_APP_NAME_TESTNET);
     else
-        app.setApplicationName("FairCoin-Qt");
+        app.setApplicationName(QAPP_APP_NAME_DEFAULT);
 
     // ... then GUI settings:
     OptionsModel optionsModel;
