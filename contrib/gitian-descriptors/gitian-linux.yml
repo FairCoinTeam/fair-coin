@@ -45,7 +45,7 @@ script: |
   #
   mkdir -p $STAGING
   cd $STAGING
-  unzip ../build/faircoin-deps-linux${GBUILD_BITS}-gitian-r1.zip
+  unzip ../build/faircoin-deps-linux${GBUILD_BITS}-gitian-r2.zip
   unzip ../build/boost-linux${GBUILD_BITS}-1.55.0-gitian-r1.zip
   tar -zxf ../build/qt-linux${GBUILD_BITS}-4.6.4-gitian-r1.tar.gz
   cd ../build
