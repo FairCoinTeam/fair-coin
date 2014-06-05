@@ -27,8 +27,8 @@ remotes:
 - "url": "https://github.com/FairCoinTeam/fair-coin.git"
   "dir": "fair-coin"
 files:
-- "faircoin-deps-linux32-gitian-r1.zip"
-- "faircoin-deps-linux64-gitian-r1.zip"
+- "faircoin-deps-linux32-gitian-r2.zip"
+- "faircoin-deps-linux64-gitian-r2.zip"
 - "boost-linux32-1.55.0-gitian-r1.zip"
 - "boost-linux64-1.55.0-gitian-r1.zip"
 - "qt-linux32-4.6.4-gitian-r1.tar.gz"

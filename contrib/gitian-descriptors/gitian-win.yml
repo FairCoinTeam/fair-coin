@@ -26,8 +26,8 @@ files:
 - "qt-win32-4.8.5-gitian-r1.zip"
 - "boost-win32-1.55.0-gitian-r1.zip"
 - "boost-win64-1.55.0-gitian-r1.zip"
-- "faircoin-deps-win32-gitian-r1.zip"
-- "faircoin-deps-win64-gitian-r1.zip"
+- "faircoin-deps-win32-gitian-r2.zip"
+- "faircoin-deps-win64-gitian-r2.zip"
 - "protobuf-win32-2.5.0-gitian-r1.zip"
 - "protobuf-win64-2.5.0-gitian-r1.zip"
 script: |
