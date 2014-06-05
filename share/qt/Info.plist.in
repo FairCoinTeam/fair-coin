@@ -29,7 +29,7 @@
   <string>????</string>
 
   <key>CFBundleExecutable</key>
-  <string>Bitcoin-Qt</string>
+  <string>FairCoin-Qt</string>
 
   <key>CFBundleIdentifier</key>
   <string>org.fair-coin.FairCoin-Qt</string>
