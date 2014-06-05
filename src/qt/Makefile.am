@@ -60,6 +60,7 @@ QT_MOC_CPP = \
   moc_transactiontablemodel.cpp \
   moc_transactionview.cpp \
   moc_qtipcserver.cpp \
+  moc_qrcodedialog.cpp \
   moc_walletmodel.cpp
 
 BITCOIN_MM =
@@ -71,10 +72,6 @@ QT_MOC = \
 
 QT_QRC_CPP = qrc_bitcoin.cpp
 QT_QRC = bitcoin.qrc
-
-#PROTOBUF_CC = paymentrequest.pb.cc
-#PROTOBUF_H = paymentrequest.pb.h
-#PROTOBUF_PROTO = paymentrequest.proto
 
 BITCOIN_QT_H = \
   aboutdialog.h \
@@ -192,6 +189,7 @@ BITCOIN_QT_CPP += \
   transactiontablemodel.cpp \
   transactionview.cpp \
   qtipcserver.cpp \
+  qrcodedialog.cpp \
   walletmodel.cpp
 endif
 
