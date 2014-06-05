@@ -11,7 +11,7 @@ using namespace std;
 
 extern void TxToJSON(const CTransaction& tx, const uint256 hashBlock, json_spirit::Object& entry);
 
-double GetDifficultyFromBits(uint nBits)
+double GetDifficultyFromBits(unsigned int nBits)
 {
     int nShift = (nBits >> 24) & 0xff;
 
