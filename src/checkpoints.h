@@ -94,7 +94,8 @@ public:
 class CSyncCheckpoint : public CUnsignedSyncCheckpoint
 {
 public:
-    static const std::string strMasterPubKey;
+    static const std::string strMainMasterPubKey;
+    static const std::string strTestMasterPubKey;
     static std::string strMasterPrivKey;
 
     std::vector<unsigned char> vchMsg;

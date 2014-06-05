@@ -25,13 +25,14 @@ namespace Checkpoints
     static MapCheckpoints mapCheckpoints =
         boost::assign::map_list_of
         ( 0, hashGenesisBlockOfficial )
-        (2223, uint256("00000011b946dc6e85e6d275acddbd8cd010f9fe22c4c1e13ffac334388f31a4"))
-        (2498, uint256("12028e76bb5607d011e47ec918177a251c4afe11c3456e11ae0b3cf3c3d4f043"))
-        (2508, uint256("00000bfb3075db95ae2ee92063a1d8f076d2e31b49725619e52c35fa10bd8219"))
-        (2875, uint256("00000000197f10f2c52335853aae0902563e6c4e3912fe7116c27e9b24177207"))
-        (2990, uint256("da4e5cea4fb1ec6b7fb5443b9a94f6cbc079156d4bdb202ce8ec6270e3213985"))
-        (3832, uint256("000007d272e08d40f47034b0af105d91c03fe8108e595c7f1b8a89a8c6298745"))
-        (9300, uint256("2f3d5fe6a94ceafef7a16837663c67473c70c7d4821a44f274daa5a1bb7dd1d4"))
+        (2223,    uint256("00000011b946dc6e85e6d275acddbd8cd010f9fe22c4c1e13ffac334388f31a4"))
+        (2498,    uint256("12028e76bb5607d011e47ec918177a251c4afe11c3456e11ae0b3cf3c3d4f043"))
+        (2508,    uint256("00000bfb3075db95ae2ee92063a1d8f076d2e31b49725619e52c35fa10bd8219"))
+        (2875,    uint256("00000000197f10f2c52335853aae0902563e6c4e3912fe7116c27e9b24177207"))
+        (2990,    uint256("da4e5cea4fb1ec6b7fb5443b9a94f6cbc079156d4bdb202ce8ec6270e3213985"))
+        (3832,    uint256("000007d272e08d40f47034b0af105d91c03fe8108e595c7f1b8a89a8c6298745"))
+        (9300,    uint256("2f3d5fe6a94ceafef7a16837663c67473c70c7d4821a44f274daa5a1bb7dd1d4"))
+        (10661,   uint256("1a4884c46cf9a8a0b98bf23fc5ed26b8d82dfeeb2ee81c9bbc68a0cfa851c771"))
         ;
 
     static MapCheckpoints mapCheckpointsTestnet =
@@ -381,8 +382,9 @@ namespace Checkpoints
     }
 }
 
-// ppcoin: sync-checkpoint master key
-const std::string CSyncCheckpoint::strMasterPubKey = "04c20f50f15c626cc037aa55f03daa42d4d4fcc998c5e7da6ef983dfca447966c903a16499ef8bfc9163a951c11a72c357634871d390af606e1bddc3df31feb629";
+// ppcoin: sync-checkpoint master keys
+const std::string CSyncCheckpoint::strMainMasterPubKey = "04360e193d8f9b79971f88de70063612f22eecf8fb55355e6ee49d9a2a14b5c3f77e0ce6c0617a3e65dac75ee1adaeeda93f6aecd60f4a8b4a096cb8e25cfdde26";
+const std::string CSyncCheckpoint::strTestMasterPubKey = "04d83bbaa800e9adda6f3b4b27f6fbc4c023399cff1e2839ccfe7d60a9676be6086a774fdbe1c19581036aaf5ff56f820e54419b205cc363593367deab2c214588";
 
 std::string CSyncCheckpoint::strMasterPrivKey = "";
 
@@ -390,7 +392,7 @@ std::string CSyncCheckpoint::strMasterPrivKey = "";
 bool CSyncCheckpoint::CheckSignature()
 {
     CKey key;
-    if (!key.SetPubKey(ParseHex(CSyncCheckpoint::strMasterPubKey)))
+    if (!key.SetPubKey(ParseHex(fTestNet ? CSyncCheckpoint::strTestMasterPubKey : CSyncCheckpoint::strMainMasterPubKey)))
         return error("CSyncCheckpoint::CheckSignature() : SetPubKey failed");
     if (!key.Verify(Hash(vchMsg.begin(), vchMsg.end()), vchSig))
         return error("CSyncCheckpoint::CheckSignature() : verify signature failed");
