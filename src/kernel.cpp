@@ -20,7 +20,7 @@ unsigned int nModifierInterval = MODIFIER_INTERVAL;
 static std::map<int, unsigned int> mapStakeModifierCheckpoints =
     boost::assign::map_list_of
     ( 0, 0x0e00670bu )
-	( 95004, 0x01c6784au )
+	( 10661, 0xabe9915du )
     ;
 
 // Get the last stake modifier and its generation time from a given block
@@ -380,8 +380,14 @@ unsigned int GetStakeModifierChecksum(const CBlockIndex* pindex)
 // Check stake modifier hard checkpoints
 bool CheckStakeModifierCheckpoints(int nHeight, unsigned int nStakeModifierChecksum)
 {
-    if (fTestNet) return true; // Testnet has no checkpoints
-    if (mapStakeModifierCheckpoints.count(nHeight))
-        return nStakeModifierChecksum == mapStakeModifierCheckpoints[nHeight];
+    if (fTestNet)
+    	return true; // Testnet has no checkpoints
+    if (mapStakeModifierCheckpoints.count(nHeight)) {
+    	if (fDebug)
+    		printf("CheckStakeModifierCheckpoint: height %d modifier checksum %08x -> %s\n",
+    			nHeight, nStakeModifierChecksum,
+    			nStakeModifierChecksum == mapStakeModifierCheckpoints[nHeight] ? "true" : "false");
+    	return nStakeModifierChecksum == mapStakeModifierCheckpoints[nHeight];
+    }
     return true;
 }

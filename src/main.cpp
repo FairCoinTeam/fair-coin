@@ -2640,29 +2640,30 @@ void PrintBlockTree()
         {
             for (int i = 0; i < nCol-1; i++)
                 printf("| ");
-            printf("|\\\n");
+            puts("|\\\n");
         }
         else if (nCol < nPrevCol)
         {
             for (int i = 0; i < nCol; i++)
                 printf("| ");
-            printf("|\n");
+            puts("|\n");
        }
         nPrevCol = nCol;
 
         // print columns
         for (int i = 0; i < nCol; i++)
-            printf("| ");
+        	puts("| ");
 
         // print item
         CBlock block;
         block.ReadFromDisk(pindex);
-        printf("BLOCK: %d (%u,%u) %s  %08x  %s  mint %7s  tx %"PRIszu"",
+        printf("\nBLOCK: %d (%u,%u) %s %08x %08x %s mint %7s tx %"PRIszu"",
             pindex->nHeight,
             pindex->nFile,
             pindex->nBlockPos,
             block.GetHash().ToString().c_str(),
             block.nBits,
+            pindex->nStakeModifierChecksum,
             DateTimeStrFormat("%x %H:%M:%S", block.GetBlockTime()).c_str(),
             FormatMoney(pindex->nMint).c_str(),
             block.vtx.size());
@@ -2684,6 +2685,8 @@ void PrintBlockTree()
         for (unsigned int i = 0; i < vNext.size(); i++)
             vStack.push_back(make_pair(nCol+i, vNext[i]));
     }
+
+    puts("\n");
 }
 
 bool LoadExternalBlockFile(FILE* fileIn)
