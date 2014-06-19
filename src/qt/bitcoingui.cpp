@@ -344,6 +344,7 @@ void BitcoinGUI::setClientModel(ClientModel *clientModel)
             }
 
             aboutAction->setIcon(QIcon(":/icons/toolbar_testnet"));
+            overviewPage->setTestnetLogo();
         }
 
         // Keep up to date with client
@@ -452,6 +453,8 @@ void BitcoinGUI::aboutClicked()
 {
     AboutDialog dlg;
     dlg.setModel(clientModel);
+    if(clientModel && clientModel->isTestNet())
+        dlg.setTestnetLogo();
     dlg.exec();
 }
 

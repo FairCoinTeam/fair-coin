@@ -28,3 +28,8 @@ void AboutDialog::on_buttonBox_accepted()
 {
     close();
 }
+
+void AboutDialog::setTestnetLogo()
+{
+    ui->label_4->setPixmap(QPixmap(QString::fromUtf8(":/images/about_testnet")));
+}

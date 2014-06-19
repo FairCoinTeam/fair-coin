@@ -195,9 +195,11 @@ endif
 
 RES_IMAGES = \
   res/images/about.png \
+  res/images/about_testnet.png \
   res/images/splash.png \
   res/images/splash_testnet.png \
-  res/images/wallet_bgcoin.png
+  res/images/wallet_bgcoin.png \
+  res/images/wallet_bgcoin_testnet.png
 
 RES_MOVIES = $(wildcard res/movies/spinner-*.png)
 

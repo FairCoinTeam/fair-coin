@@ -152,6 +152,11 @@ void OverviewPage::setNumTransactions(int count)
     ui->labelNumTransactions->setText(QLocale::system().toString(count));
 }
 
+void OverviewPage::setTestnetLogo()
+{
+    ui->label_wallet_bgcoin->setPixmap(QPixmap(QString::fromUtf8(":/images/wallet_bgcoin_testnet")));
+}
+
 void OverviewPage::setModel(WalletModel *model)
 {
     this->model = model;
