@@ -274,9 +274,9 @@ bool WalletModel::setWalletEncrypted(bool encrypted, const SecureString &passphr
     }
 }
 
-bool WalletModel::setWalletLocked(bool locked, const SecureString &passPhrase)
+bool WalletModel::setWalletLocked(bool locked, const SecureString &passPhrase, bool unlockForMintingOnly)
 {
-    if(locked)
+	if(locked)
     {
         // Lock
         return wallet->Lock();
@@ -284,7 +284,10 @@ bool WalletModel::setWalletLocked(bool locked, const SecureString &passPhrase)
     else
     {
         // Unlock
-        return wallet->Unlock(passPhrase);
+    	OutputDebugStringF("Unlocking wallet%s\n", (unlockForMintingOnly ? " for minting only" : ""));
+
+        fWalletUnlockMintOnly = unlockForMintingOnly;
+    	return wallet->Unlock(passPhrase);
     }
 }
 
