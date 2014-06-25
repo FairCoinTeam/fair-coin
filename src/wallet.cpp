@@ -1857,7 +1857,7 @@ void CWallet::KeepKey(int64 nIndex)
         CWalletDB walletdb(strWalletFile);
         walletdb.ErasePool(nIndex);
     }
-    if(fDebug)
+    if (fDebug && GetBoolArg("-printkeypool", false))
         printf("keypool keep %"PRI64d"\n", nIndex);
 }
 
@@ -1868,7 +1868,7 @@ void CWallet::ReturnKey(int64 nIndex)
         LOCK(cs_wallet);
         setKeyPool.insert(nIndex);
     }
-    if(fDebug)
+    if(fDebug && GetBoolArg("-printkeypool", false))
         printf("keypool return %"PRI64d"\n", nIndex);
 }
 
