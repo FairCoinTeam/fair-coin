@@ -11,6 +11,10 @@
 #include "strlcpy.h"
 #include "base58.h"
 
+#if !defined(HAVE_MSG_NOSIGNAL) && !defined(MSG_NOSIGNAL)
+#define MSG_NOSIGNAL 0
+#endif
+
 using namespace std;
 using namespace boost;
 

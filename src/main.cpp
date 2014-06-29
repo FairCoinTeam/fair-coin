@@ -10,7 +10,6 @@
 #include "init.h"
 #include "ui_interface.h"
 #include "kernel.h"
-#include "scrypt_mine.h"
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
@@ -4334,8 +4333,6 @@ static int nLimitProcessors = -1;
 
 void BitcoinMiner(CWallet *pwallet, bool fProofOfStake)
 {
-    void *scratchbuf = scrypt_buffer_alloc();
-
     printf("CPUMiner started for proof-of-%s\n", fProofOfStake? "stake" : "work");
     SetThreadPriority(THREAD_PRIORITY_LOWEST);
 
@@ -4420,45 +4417,36 @@ void BitcoinMiner(CWallet *pwallet, bool fProofOfStake)
         //
         int64 nStart = GetTime();
         uint256 hashTarget = CBigNum().SetCompact(pblock->nBits).getuint256();
-
-        unsigned int max_nonce = 0xffff0000;
-        block_header res_header;
         uint256 result;
 
         loop
         {
             unsigned int nHashesDone = 0;
-            unsigned int nNonceFound;
 
-            nNonceFound = scanhash_scrypt(
-                        (block_header *)&pblock->nVersion,
-                        scratchbuf,
-                        max_nonce,
-                        nHashesDone,
-                        UBEGIN(result),
-                        &res_header
-            );
-
-            // Check if something found
-            if (nNonceFound != (unsigned int) -1)
+            uint256 thash;
+            char scratchpad[SCRYPT_SCRATCHPAD_SIZE];
+            loop
             {
-                if (result <= hashTarget)
+                scrypt_1024_1_1_256_sp(BEGIN(pblock->nVersion), BEGIN(thash), scratchpad);
+
+                if (thash <= hashTarget)
                 {
                     // Found a solution
-                    pblock->nNonce = nNonceFound;
-                    assert(result == pblock->GetHash());
+                    assert(thash == pblock->GetHash());
                     if (!pblock->SignBlock(*pwalletMain))
-                    {
-//                        strMintWarning = strMintMessage;
-                        break;
-                    }
-                    strMintWarning = "";
+                    	break;
 
                     SetThreadPriority(THREAD_PRIORITY_NORMAL);
                     CheckWork(pblock.get(), *pwalletMain, reservekey);
                     SetThreadPriority(THREAD_PRIORITY_LOWEST);
+                    strMintWarning = "";
                     break;
                 }
+
+                pblock->nNonce += 1;
+                nHashesDone += 1;
+                if ((pblock->nNonce & 0xFF) == 0)
+                    break;
             }
 
             // Meter hashes/sec
@@ -4516,8 +4504,6 @@ void BitcoinMiner(CWallet *pwallet, bool fProofOfStake)
                 break;  // need to update coinbase timestamp
         }
     }
-
-    scrypt_buffer_free(scratchbuf);
 }
 
 void static ThreadBitcoinMiner(void* parg)

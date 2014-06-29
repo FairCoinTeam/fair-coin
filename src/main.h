@@ -9,7 +9,7 @@
 #include "sync.h"
 #include "net.h"
 #include "script.h"
-#include "scrypt_mine.h"
+#include "scrypt.h"
 
 #include <list>
 
@@ -909,12 +909,7 @@ public:
     uint256 GetHash() const
     {
         uint256 thash;
-        void * scratchbuff = scrypt_buffer_alloc();
-
-        scrypt_hash(CVOIDBEGIN(nVersion), sizeof(block_header), UINTBEGIN(thash), scratchbuff);
-
-        scrypt_buffer_free(scratchbuff);
-
+        scrypt_1024_1_1_256(BEGIN(nVersion), BEGIN(thash));
         return thash;
     }
 

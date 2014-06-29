@@ -43,7 +43,7 @@ BITCOIN_CORE_H = \
   pbkdf2.h \
   protocol.h \
   script.h \
-  scrypt_mine.h \
+  scrypt.h \
   serialize.h \
   strlcpy.h \
   sync.h \
@@ -106,10 +106,8 @@ libbitcoin_common_a_SOURCES = \
   script.cpp \
   kernel.cpp \
   pbkdf2.cpp \
-  scrypt_mine.cpp \
-  scrypt-x86_64.S \
-  scrypt-x86.S \
-  scrypt-arm.S \
+  scrypt.cpp \
+  scrypt-sse2.cpp \
   sync.cpp \
   util.cpp \
   version.cpp \
