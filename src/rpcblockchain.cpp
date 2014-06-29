@@ -222,7 +222,7 @@ Value getblockbynumber(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() < 1 || params.size() > 2)
         throw runtime_error(
-            "getblock <number> [txinfo]\n"
+            "getblockbynumber <number> [txinfo]\n"
             "txinfo optional to print more detailed tx info\n"
             "Returns details of a block with given block-number.");
 
@@ -241,6 +241,35 @@ Value getblockbynumber(const Array& params, bool fHelp)
     block.ReadFromDisk(pblockindex, true);
 
     return blockToJSON(block, pblockindex, params.size() > 1 ? params[1].get_bool() : false);
+}
+
+Value getrawblockbynumber(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw runtime_error(
+            "getrawblockbynumber <number>\n"
+            "Returns raw details of a block with given block-number.");
+
+    int nHeight = params[0].get_int();
+    if (nHeight < 0 || nHeight > nBestHeight)
+        throw runtime_error("Block number out of range.");
+
+    CBlock block;
+    CBlockIndex* pblockindex = mapBlockIndex[hashBestChain];
+    while (pblockindex->nHeight > nHeight)
+        pblockindex = pblockindex->pprev;
+
+    uint256 hash = *pblockindex->phashBlock;
+
+    pblockindex = mapBlockIndex[hash];
+    block.ReadFromDisk(pblockindex, true);
+
+    CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
+
+    ssTx << block;
+    string strHex = HexStr(ssTx.begin(), ssTx.end());
+
+    return strHex;
 }
 
 // ppcoin: get information of sync-checkpoint
