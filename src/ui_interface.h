@@ -103,3 +103,4 @@ inline std::string _(const char* psz)
     boost::optional<std::string> rv = uiInterface.Translate(psz);
     return rv ? (*rv) : psz;
 }
+#endif
