@@ -6,7 +6,9 @@
 #define BITCOIN_UI_INTERFACE_H
 
 #include <string>
-#include "util.h" // for int64
+
+typedef long long  int64;
+
 #include <boost/signals2/signal.hpp>
 #include <boost/signals2/last_value.hpp>
 
@@ -101,5 +103,3 @@ inline std::string _(const char* psz)
     boost::optional<std::string> rv = uiInterface.Translate(psz);
     return rv ? (*rv) : psz;
 }
-
-#endif

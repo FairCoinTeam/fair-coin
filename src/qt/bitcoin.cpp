@@ -8,8 +8,6 @@
 #include "guiutil.h"
 #include "guiconstants.h"
 
-#include "init.h"
-#include "ui_interface.h"
 #include "qtipcserver.h"
 
 #include <QApplication>
@@ -20,15 +18,21 @@
 #include <QSplashScreen>
 #include <QLibraryInfo>
 
-#if defined(BITCOIN_NEED_QT_PLUGINS) && !defined(_BITCOIN_QT_PLUGINS_INCLUDED)
-#define _BITCOIN_QT_PLUGINS_INCLUDED
-#define __INSURE__
+#include "init.h"
+#include "ui_interface.h"
+
+#if defined(QT_STATICPLUGIN)
 #include <QtPlugin>
+#if QT_VERSION < 0x050000
 Q_IMPORT_PLUGIN(qcncodecs)
 Q_IMPORT_PLUGIN(qjpcodecs)
 Q_IMPORT_PLUGIN(qtwcodecs)
 Q_IMPORT_PLUGIN(qkrcodecs)
 Q_IMPORT_PLUGIN(qtaccessiblewidgets)
+#else
+Q_IMPORT_PLUGIN(AccessibleFactory)
+Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
+#endif
 #endif
 
 // Need a global reference for the notifications to find the GUI
@@ -116,9 +120,11 @@ int main(int argc, char *argv[])
     // Do this early as we don't want to bother initializing if we are just calling IPC
     ipcScanRelay(argc, argv);
 
+#if QT_VERSION < 0x050000
     // Internal string conversion is all UTF-8
     QTextCodec::setCodecForTr(QTextCodec::codecForName("UTF-8"));
     QTextCodec::setCodecForCStrings(QTextCodec::codecForTr());
+#endif
 
     Q_INIT_RESOURCE(bitcoin);
     QApplication app(argc, argv);

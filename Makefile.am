@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I src/m4
 SUBDIRS = src
-.PHONY: deploy
+.PHONY: deploy FORCE
 
 GZIP_ENV="-9n"
 
@@ -28,16 +28,18 @@ OSX_PACKAGING = $(OSX_DEPLOY_SCRIPT) $(OSX_FANCY_PLIST) $(OSX_INSTALLER_ICONS) \
   $(top_srcdir)/contrib/macdeploy/DS_Store
 
 COVERAGE_INFO = baseline_filtered_combined.info baseline.info block_test.info \
-  test_bitcoin_filtered.info total_coverage.info \
+  leveldb_baseline.info test_bitcoin_filtered.info total_coverage.info \
   baseline_filtered.info block_test_filtered.info \
-  test_bitcoin_coverage.info test_bitcoin.info
+  leveldb_baseline_filtered.info test_bitcoin_coverage.info test_bitcoin.info
 
 dist-hook:
+	-$(MAKE) -C $(top_distdir)/src/leveldb clean
 	-$(GIT) archive --format=tar HEAD -- src/version.cpp | $(AMTAR) -C $(top_distdir) -xf -
 
 distcheck-hook:
-	@:
-	rm Makefile.in
+	$(MKDIR_P) $(top_distdir)/_build/src/leveldb
+	cp -rf $(top_srcdir)/src/leveldb/* $(top_distdir)/_build/src/leveldb/
+	-$(MAKE) -C $(top_distdir)/_build/src/leveldb clean
 
 distcleancheck:
 	@:
@@ -49,8 +51,8 @@ $(BITCOIN_WIN_INSTALLER): $(BITCOIND_BIN) $(BITCOIN_QT_BIN)
 	@test -f $(MAKENSIS) && $(MAKENSIS) $(top_builddir)/share/setup.nsi || \
 	  echo error: could not build $@
 
-$(BITCOIND_BIN) $(BITCOIN_QT_BIN):
-	make -C $(dir $@) $(notdir $@)
+$(if $(findstring src/,$(MAKECMDGOALS)),$(MAKECMDGOALS), none): FORCE
+	$(MAKE) -C src $(patsubst src/%,%,$@)
 
 $(OSX_APP)/Contents/PkgInfo:
 	$(MKDIR_P) $(@D)
@@ -106,13 +108,20 @@ baseline.info:
 baseline_filtered.info: baseline.info
 	$(LCOV) -r $< "/usr/include/*" -o $@
 
-baseline_filtered_combined.info: baseline_filtered.info
-	$(LCOV) -a baseline_filtered.info -o $@
+leveldb_baseline.info: baseline_filtered.info
+	$(LCOV) -c -i -d $(abs_builddir)/src/leveldb -b $(abs_builddir)/src/leveldb -o $@
+
+leveldb_baseline_filtered.info: leveldb_baseline.info
+	$(LCOV) -r $< "/usr/include/*" -o $@
+
+baseline_filtered_combined.info: leveldb_baseline_filtered.info baseline_filtered.info
+	$(LCOV) -a leveldb_baseline_filtered.info -a baseline_filtered.info -o $@
 
 test_bitcoin.info: baseline_filtered_combined.info
 	$(MAKE) -C src/ check
 	$(LCOV) -c -d $(abs_builddir)/src -t test_bitcoin -o $@
 	$(LCOV) -z -d $(abs_builddir)/src
+	$(LCOV) -z -d $(abs_builddir)/src/leveldb
 
 test_bitcoin_filtered.info: test_bitcoin.info
 	$(LCOV) -r $< "/usr/include/*" -o $@
@@ -120,17 +129,18 @@ test_bitcoin_filtered.info: test_bitcoin.info
 block_test.info: test_bitcoin_filtered.info
 	$(MKDIR_P) qa/tmp
 	-@TIMEOUT=15 qa/pull-tester/run-bitcoind-for-test.sh $(JAVA) -jar $(JAVA_COMPARISON_TOOL) qa/tmp/compTool 0
-	$(LCOV) -c -d $(abs_builddir)/src --t BitcoinJBlockTest -o $@
+	$(LCOV) -c -d $(abs_builddir)/src --t FairCoinJBlockTest -o $@
 	$(LCOV) -z -d $(abs_builddir)/src
+	$(LCOV) -z -d $(abs_builddir)/src/leveldb
 
 block_test_filtered.info: block_test.info
 	$(LCOV) -r $< "/usr/include/*" -o $@
 
 test_bitcoin_coverage.info: baseline_filtered_combined.info test_bitcoin_filtered.info
-	$(LCOV) -a baseline_filtered.info -a test_bitcoin_filtered.info -o $@
+	$(LCOV) -a baseline_filtered.info -a leveldb_baseline_filtered.info -a test_bitcoin_filtered.info -o $@
 
 total_coverage.info:  baseline_filtered_combined.info test_bitcoin_filtered.info block_test_filtered.info
-	$(LCOV) -a baseline_filtered.info -a test_bitcoin_filtered.info -a block_test_filtered.info -o $@ | $(GREP) "\%" | $(AWK) '{ print substr($$3,2,50) "/" $$5 }' > coverage_percent.txt
+	$(LCOV) -a baseline_filtered.info -a leveldb_baseline_filtered.info -a test_bitcoin_filtered.info -a block_test_filtered.info -o $@ | $(GREP) "\%" | $(AWK) '{ print substr($$3,2,50) "/" $$5 }' > coverage_percent.txt
 
 test_bitcoin.coverage/.dirstamp:  test_bitcoin_coverage.info
 	$(GENHTML) -s $< -o $(@D)

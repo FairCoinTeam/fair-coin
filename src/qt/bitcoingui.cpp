@@ -25,7 +25,6 @@
 #include "notificator.h"
 #include "guiutil.h"
 #include "rpcconsole.h"
-#include "wallet.h"
 
 #ifdef Q_OS_MAC
 #include "macdockiconhandler.h"
@@ -53,9 +52,17 @@
 #include <QDesktopServices>
 #include <QTimer>
 #include <QDragEnterEvent>
-#include <QUrl>
 #include <QStyle>
+#include <QMimeData>
 
+#if QT_VERSION < 0x050000
+#include <QUrl>
+#include <QTextDocument>
+#else
+#include <QUrlQuery>
+#endif
+
+#include "wallet.h"
 #include <iostream>
 
 BitcoinGUI::BitcoinGUI(QWidget *parent):
@@ -832,8 +839,10 @@ void BitcoinGUI::encryptWallet(bool status)
 
 void BitcoinGUI::backupWallet()
 {
-    QString saveDir = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation);
-    QString filename = QFileDialog::getSaveFileName(this, tr("Backup Wallet"), saveDir, tr("Wallet Data (*.dat)"));
+	QString filename = GUIUtil::getSaveFileName(this,
+	        tr("Backup Wallet"), QString(),
+	        tr("Wallet Data (*.dat)"), NULL);
+
     if(!filename.isEmpty()) {
         if(!walletModel->backupWallet(filename)) {
             QMessageBox::warning(this, tr("Backup Failed"), tr("There was an error trying to save the wallet data to the new location."));
