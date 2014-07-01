@@ -174,7 +174,6 @@ BITCOIN_QT_CPP += \
   qt/askpassphrasedialog.cpp \
   qt/editaddressdialog.cpp \
   qt/overviewpage.cpp \
-  qt/macnotificationhandler.cpp \
   qt/sendcoinsdialog.cpp \
   qt/sendcoinsentry.cpp \
   qt/signverifymessagedialog.cpp \
