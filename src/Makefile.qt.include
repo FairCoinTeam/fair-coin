@@ -36,6 +36,7 @@ QT_MOC_CPP = \
   qt/moc_macdockiconhandler.cpp \
   qt/moc_monitoreddatamapper.cpp \
   qt/moc_notificator.cpp \
+  qt/moc_macnotificationhandler.cpp \
   qt/moc_optionsdialog.cpp \
   qt/moc_optionsmodel.cpp \
   qt/moc_overviewpage.cpp \
@@ -83,6 +84,7 @@ BITCOIN_QT_H = \
   qt/macdockiconhandler.h \
   qt/monitoreddatamapper.h \
   qt/notificator.h \
+  qt/macnotificationhandler.h \
   qt/optionsdialog.h \
   qt/optionsmodel.h \
   qt/overviewpage.h \
@@ -172,6 +174,7 @@ BITCOIN_QT_CPP += \
   qt/askpassphrasedialog.cpp \
   qt/editaddressdialog.cpp \
   qt/overviewpage.cpp \
+  qt/macnotificationhandler.cpp \
   qt/sendcoinsdialog.cpp \
   qt/sendcoinsentry.cpp \
   qt/signverifymessagedialog.cpp \
