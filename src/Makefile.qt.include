@@ -36,7 +36,6 @@ QT_MOC_CPP = \
   qt/moc_macdockiconhandler.cpp \
   qt/moc_monitoreddatamapper.cpp \
   qt/moc_notificator.cpp \
-  qt/moc_macnotificationhandler.cpp \
   qt/moc_optionsdialog.cpp \
   qt/moc_optionsmodel.cpp \
   qt/moc_overviewpage.cpp \
