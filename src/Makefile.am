@@ -24,6 +24,10 @@ LIBBITCOIN_SERVER=libbitcoin_server.a
 LIBBITCOIN_WALLET=libbitcoin_wallet.a
 LIBBITCOIN_COMMON=libbitcoin_common.a
 LIBBITCOIN_UTIL=libbitcoin_util.a
+if HAVE_SSE2
+LIBBITCOIN_SSE2=libbitcoin_sse2.a
+endif
+
 LIBBITCOINQT=qt/libbitcoinqt.a
 
 noinst_LIBRARIES = \
@@ -33,6 +37,10 @@ noinst_LIBRARIES = \
 if ENABLE_WALLET
 BITCOIN_INCLUDES += $(BDB_CPPFLAGS)
 noinst_LIBRARIES += libbitcoin_wallet.a
+endif
+
+if HAVE_SSE2
+noinst_LIBRARIES += libbitcoin_sse2.a
 endif
 
 bin_PROGRAMS =
@@ -65,7 +73,6 @@ BITCOIN_CORE_H = \
   mruset.h \
   netbase.h \
   net.h \
-  pbkdf2.h \
   protocol.h \
   script.h \
   scrypt.h \
@@ -136,9 +143,7 @@ libbitcoin_common_a_SOURCES = \
   protocol.cpp \
   script.cpp \
   kernel.cpp \
-  pbkdf2.cpp \
   scrypt.cpp \
-  scrypt-sse2.cpp \
   sync.cpp \
   $(BITCOIN_CORE_H)
 
@@ -159,7 +164,6 @@ libbitcoin_util_a_SOURCES += compat/glibcxx_compat.cpp
 endif
 
 nodist_libbitcoin_util_a_SOURCES = $(srcdir)/obj/build.h
-#
 
 # bitcoind binary #
 FairCoind_LDADD = \
@@ -168,11 +172,17 @@ FairCoind_LDADD = \
   $(LIBBITCOIN_UTIL) \
   $(LIBLEVELDB) \
   $(LIBMEMENV)
+
+if HAVE_SSE2
+libbitcoin_sse2_a_SOURCES = scrypt-sse2.cpp
+libbitcoin_sse2_a_CPPFLAGS = $(BITCOIN_INCLUDES) -msse2 -mstackrealign
+FairCoind_LDADD += libbitcoin_sse2.a
+endif
+
 if ENABLE_WALLET
 FairCoind_LDADD += libbitcoin_wallet.a
 endif
 FairCoind_SOURCES = daemon.cpp
-#
 
 if TARGET_WINDOWS
 FairCoind_SOURCES += bitcoind-res.rc

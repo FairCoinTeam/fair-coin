@@ -27,6 +27,8 @@
  * online backup system.
  */
 
+#include "config/faircoin-config.h"
+
 #include "scrypt.h"
 #include "util.h"
 #include <stdlib.h>
@@ -34,7 +36,7 @@
 #include <string.h>
 #include <openssl/sha.h>
 
-#if defined(USE_SSE2) && !defined(USE_SSE2_ALWAYS)
+#if defined(HAVE_SSE2) && !defined(USE_SSE2_ALWAYS)
 #ifdef _MSC_VER
 // MSVC 64bit is unable to use inline asm
 #include <intrin.h>
@@ -286,7 +288,7 @@ void scrypt_1024_1_1_256_sp_generic(const char *input, char *output, char *scrat
 	PBKDF2_SHA256((const uint8_t *)input, 80, B, 128, 1, (uint8_t *)output, 32);
 }
 
-#if defined(USE_SSE2)
+#if defined(HAVE_SSE2)
 // By default, set to generic scrypt function. This will prevent crash in case when scrypt_detect_sse2() wasn't called
 void (*scrypt_1024_1_1_256_sp_detected)(const char *input, char *output, char *scratchpad) = &scrypt_1024_1_1_256_sp_generic;
 

@@ -101,6 +101,18 @@ AC_ARG_ENABLE([lcov],
   [use_lcov=yes],
   [use_lcov=no])
 
+AC_ARG_ENABLE([sse2],
+  [AS_HELP_STRING([--enable-sse2],
+  [enable SSE/SSE2 optimizations (default is yes)])],
+  [have_sse2=$enableval],
+  [have_sse2=yes])
+AC_MSG_CHECKING([whether enable SSE/SSE2 optimizations])
+if test "$have_sse2" = "yes"; then
+    AC_DEFINE([HAVE_SSE2],1,[Define to enable SSE/SSE2 optimizations.])
+fi
+AC_MSG_RESULT($have_sse2)
+AM_CONDITIONAL([HAVE_SSE2],[test x"$have_sse2" = x"yes"])
+
 AC_ARG_ENABLE([glibc-back-compat],
   [AS_HELP_STRING([--enable-glibc-back-compat],
   [enable backwards compatibility with glibc and libstdc++])],
@@ -108,7 +120,6 @@ AC_ARG_ENABLE([glibc-back-compat],
   [use_glibc_compat=no])
 
 AC_ARG_WITH([protoc-bindir],[AS_HELP_STRING([--with-protoc-bindir=BIN_DIR],[specify protoc bin path])], [protoc_bin_path=$withval], [])
-
 
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_HEADERS([src/config/faircoin-config.h])
@@ -543,13 +554,9 @@ fi
 
 BITCOIN_QT_PATH_PROGS([PROTOC], [protoc],$protoc_bin_path)
 
-AC_MSG_CHECKING([whether to build bitcoind])
+AC_MSG_CHECKING([whether to build FairCoind])
 AM_CONDITIONAL([BUILD_BITCOIND], [test x$build_bitcoind = xyes])
 AC_MSG_RESULT($build_bitcoind)
-
-AC_MSG_CHECKING([whether to build bitcoin-cli])
-AM_CONDITIONAL([BUILD_BITCOIN_CLI], [test x$build_bitcoin_cli = xyes])
-AC_MSG_RESULT($build_bitcoin_cli)
 
 dnl sets $bitcoin_enable_qt, $bitcoin_enable_qt_test, $bitcoin_enable_qt_dbus
 BITCOIN_QT_CONFIGURE([$use_pkgconfig], [qt4])
@@ -658,7 +665,7 @@ else
 fi
 
 if test "x$use_tests$build_bitcoind$use_qt" = "xnonono"; then
-  AC_MSG_ERROR([No targets! Please specify at least one of: --enable-cli --enable-daemon --enable-gui or --enable-tests])
+  AC_MSG_ERROR([No targets! Please specify at least one of: --enable-daemon or --enable-gui])
 fi
 
 AM_CONDITIONAL([TARGET_DARWIN], [test x$TARGET_OS = xdarwin])

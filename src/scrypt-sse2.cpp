@@ -27,6 +27,8 @@
  * online backup system.
  */
 
+#include "config/faircoin-config.h"
+
 #include "scrypt.h"
 #include <stdlib.h>
 #include <stdint.h>

@@ -1,7 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2012 The Bitcoin developers
+// Copyright (c) 2014 The FairCoin developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
+#include "config/faircoin-config.h"
+
 #include "dbx.h"
 #include "walletdb.h"
 #include "bitcoinrpc.h"
@@ -479,7 +482,11 @@ bool AppInit2()
 
     int64 nStart;
 
-    // ********************************************************* Step 5: verify database integrity
+#if defined(HAVE_SSE2)
+    scrypt_detect_sse2();
+#endif
+
+     // ********************************************************* Step 5: verify database integrity
 
     uiInterface.InitMessage(_("Verifying database integrity..."));
 
