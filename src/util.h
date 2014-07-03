@@ -8,12 +8,13 @@
 #include "uint256.h"
 
 #ifndef WIN32
-#include <sys/types.h>
-#include <sys/time.h>
 #include <sys/resource.h>
-#else
-typedef int pid_t; /* define for Windows compatibility */
+#include <sys/time.h>
+#include <sys/types.h>
 #endif
+
+#include "compat.h"
+
 #include <map>
 #include <vector>
 #include <string>
