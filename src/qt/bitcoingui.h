@@ -107,6 +107,8 @@ private:
     void createToolBars();
     /** Create system tray (notification) icon */
     void createTrayIcon();
+    /** set the wallet lock status */
+    void setWalletLock(bool fLockForMintingOnly = false);
 
 public slots:
     /** Set number of connections shown in the UI */

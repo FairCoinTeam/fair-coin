@@ -6,7 +6,6 @@
 #include "optionsmodel.h"
 #include "sendcoinsentry.h"
 #include "guiutil.h"
-#include "askpassphrasedialog.h"
 #include "base58.h"
 
 #include <QMessageBox>

@@ -388,7 +388,7 @@ void BitcoinGUI::setWalletModel(WalletModel *walletModel)
         // Put transaction list in tabs
         transactionView->setModel(walletModel);
 
-        overviewPage->setModel(walletModel);
+        overviewPage->setModel(walletModel, this);
         addressBookPage->setModel(walletModel->getAddressTableModel());
         receiveCoinsPage->setModel(walletModel->getAddressTableModel());
         sendCoinsPage->setModel(walletModel);
@@ -812,6 +812,7 @@ void BitcoinGUI::setEncryptionStatus(int status)
         changePassphraseAction->setEnabled(true);
         unlockWalletAction->setEnabled(false);
         encryptWalletAction->setEnabled(false); // TODO: decrypt currently not supported
+        overviewPage->setUnlockWalletButtonText(tr("Lock wallet"));
         break;
     case WalletModel::Locked:
         labelEncryptionIcon->show();
@@ -821,6 +822,7 @@ void BitcoinGUI::setEncryptionStatus(int status)
         unlockWalletAction->setEnabled(true);
         changePassphraseAction->setEnabled(true);
         encryptWalletAction->setEnabled(false); // TODO: decrypt currently not supported
+        overviewPage->setUnlockWalletButtonText(tr("Unlock wallet for minting"));
         break;
     }
 }
@@ -859,24 +861,30 @@ void BitcoinGUI::changePassphrase()
 
 void BitcoinGUI::unlockWallet()
 {
+	setWalletLock();
+}
+
+void BitcoinGUI::unlockWalletForMinting()
+{
+	setWalletLock(true);
+}
+
+void BitcoinGUI::setWalletLock(bool fLockForMintingOnly)
+{
     if(!walletModel)
         return;
     // Unlock wallet when requested by wallet model
     if(walletModel->getEncryptionStatus() == WalletModel::Locked)
     {
-        AskPassphraseDialog dlg(AskPassphraseDialog::Unlock, this);
+        AskPassphraseDialog dlg(fLockForMintingOnly ? AskPassphraseDialog::UnlockMinting : AskPassphraseDialog::Unlock, this);
         dlg.setModel(walletModel);
         dlg.exec();
     }
-}
-
-void BitcoinGUI::unlockWalletForMinting()
-{
-	if(!walletModel)
-		return;
-	AskPassphraseDialog dlg(AskPassphraseDialog::UnlockMinting, this);
-	dlg.setModel(walletModel);
-	dlg.exec();
+	else if (walletModel->getEncryptionStatus() == WalletModel::Unlocked)
+	{
+		SecureString empty;
+		walletModel->setWalletLocked(true, empty, true);
+	}
 }
 
 void BitcoinGUI::showNormalIfMinimized(bool fToggleHidden)

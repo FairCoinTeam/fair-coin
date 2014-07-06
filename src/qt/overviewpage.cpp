@@ -13,7 +13,7 @@
 #include <QPainter>
 
 #define DECORATION_SIZE 64
-#define NUM_ITEMS 3
+#define NUM_ITEMS 6
 
 class TxViewDelegate : public QAbstractItemDelegate
 {
@@ -158,7 +158,12 @@ void OverviewPage::setTestnetLogo()
     ui->label_wallet_bgcoin->setPixmap(QPixmap(QString::fromUtf8(":/images/wallet_bgcoin_testnet")));
 }
 
-void OverviewPage::setModel(WalletModel *model)
+void OverviewPage::setUnlockWalletButtonText(QString name)
+{
+    ui->unlockWalletButton->setText(name);
+}
+
+void OverviewPage::setModel(WalletModel *model, BitcoinGUI *gui)
 {
     this->model = model;
     if(model && model->getOptionsModel())
@@ -182,6 +187,14 @@ void OverviewPage::setModel(WalletModel *model)
         connect(model, SIGNAL(numTransactionsChanged(int)), this, SLOT(setNumTransactions(int)));
 
         connect(model->getOptionsModel(), SIGNAL(displayUnitChanged(int)), this, SLOT(updateDisplayUnit()));
+
+        // Unlock wallet button
+        WalletModel::EncryptionStatus status = model->getEncryptionStatus();
+        if(status == WalletModel::Unencrypted)
+        {
+            ui->unlockWalletButton->setDisabled(true);
+        }
+        connect(ui->unlockWalletButton, SIGNAL(clicked()), gui, SLOT(unlockWalletForMinting()));
     }
 
     // update the display unit, to not use the default ("BTC")
