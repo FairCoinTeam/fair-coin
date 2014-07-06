@@ -1086,8 +1086,16 @@ const boost::filesystem::path &GetDataDir(bool fNetSpecific)
 
 boost::filesystem::path GetConfigFile()
 {
-    boost::filesystem::path pathConfigFile(GetArg("-conf", "FairCoin.conf"));
-    if (!pathConfigFile.is_complete()) pathConfigFile = GetDataDir(false) / pathConfigFile;
+    boost::filesystem::path pathConfigFile, path(GetArg("-conf", "FairCoin.conf"));
+    if (path.is_complete())
+    	return path;
+
+    pathConfigFile = GetDataDir(false);
+	if (GetBoolArg("-testnet", false))
+		pathConfigFile /= "testnet2";
+
+    pathConfigFile /= path;
+
     return pathConfigFile;
 }
 
