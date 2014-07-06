@@ -3,7 +3,7 @@ name: "faircoin"
 suites:
 - "precise"
 architectures:
-- "i386"
+- "amd64"
 packages:
 - "mingw-w64"
 - "g++-mingw-w64"
@@ -16,14 +16,14 @@ packages:
 - "automake"
 - "pkg-config"
 - "bsdmainutils"
-- "qt4-linguist-tools"
 - "gettext"
 reference_datetime: "2013-06-01 00:00:00"
 remotes:
 - "url": "https://github.com/FairCoinTeam/fair-coin.git"
   "dir": "fair-coin"
 files:
-- "qt-win32-4.8.5-gitian-r1.zip"
+- "qt-win32-5.2.1-gitian-r1.zip"
+- "qt-win64-5.2.1-gitian-r1.zip"
 - "boost-win32-1.55.0-gitian-r1.zip"
 - "boost-win64-1.55.0-gitian-r1.zip"
 - "faircoin-deps-win32-gitian-r2.zip"
@@ -37,8 +37,15 @@ script: |
   OPTFLAGS='-O2'
   TEMPDIR="$HOME/tempdir"
   NEEDDIST=1
-  #for BITS in 32 64; do # for architectures
-  for BITS in 32; do # for now we only build for 32bit arch
+  # Qt: workaround for determinism in resource ordering
+  #  Qt5's rcc uses a QHash to store the files for the resource.
+  #  A security fix in QHash makes the ordering of keys to be different on every run
+  #  (https://qt.gitorious.org/qt/qtbase/commit/c01eaa438200edc9a3bbcd8ae1e8ded058bea268).
+  #  This is good in general but qrc shouldn't be doing a traversal over a randomized container.
+  #  The thorough solution would be to use QMap instead of QHash, but this requires patching Qt.
+  #  For now luckily there is a test mode that forces a fixed seed.
+  export QT_RCC_TEST=1
+  for BITS in 32 64; do # for architectures
     #
     STAGING=$HOME/staging${BITS}
     BUILDDIR=$HOME/build${BITS}
@@ -52,7 +59,7 @@ script: |
     mkdir -p $STAGING $BUILDDIR $BINDIR
     #
     cd $STAGING
-    unzip $INDIR/qt-win${BITS}-4.8.5-gitian-r1.zip
+    unzip $INDIR/qt-win${BITS}-5.2.1-gitian-r1.zip
     unzip $INDIR/boost-win${BITS}-1.55.0-gitian-r1.zip
     unzip $INDIR/faircoin-deps-win${BITS}-gitian-r2.zip
     unzip $INDIR/protobuf-win${BITS}-2.5.0-gitian-r1.zip
@@ -60,7 +67,7 @@ script: |
       # Make source code archive which is architecture independent so it only needs to be done once
       cd $HOME/build/fair-coin
       ./autogen.sh
-      ./configure --bindir=$OUTDIR --prefix=$STAGING --host=$HOST --disable-tests --with-qt-plugindir=$STAGING/plugins --with-qt-incdir=$STAGING/include --with-qt-bindir=$STAGING/bin --with-boost=$STAGING --disable-maintainer-mode --with-protoc-bindir=$STAGING/host/bin --disable-dependency-tracking CPPFLAGS="-I$STAGING/include ${OPTFLAGS}" LDFLAGS="-L$STAGING/lib ${OPTFLAGS}" CXXFLAGS="-frandom-seed=faircoin ${OPTFLAGS}"
+      ./configure --bindir=$OUTDIR --prefix=$STAGING --host=$HOST --disable-tests --with-qt-plugindir=$STAGING/plugins --with-qt-incdir=$STAGING/include --with-qt-bindir=$STAGING/host/bin --with-boost=$STAGING --disable-maintainer-mode --with-protoc-bindir=$STAGING/host/bin --disable-dependency-tracking CPPFLAGS="-I$STAGING/include ${OPTFLAGS}" LDFLAGS="-L$STAGING/lib ${OPTFLAGS}" CXXFLAGS="-frandom-seed=fair-coin ${OPTFLAGS}"
       make dist
       DISTNAME=`echo faircoin-*.tar.gz`
       NEEDDIST=0
@@ -70,7 +77,7 @@ script: |
     mkdir -p distsrc
     cd distsrc
     tar --strip-components=1 -xf $HOME/build/fair-coin/$DISTNAME
-    ./configure --enable-upnp-default --bindir=$BINDIR --prefix=$STAGING --host=$HOST --disable-hardening --disable-tests --with-qt-plugindir=$STAGING/plugins --with-qt-incdir=$STAGING/include --with-qt-bindir=$STAGING/bin --with-boost=$STAGING --disable-maintainer-mode --with-protoc-bindir=$STAGING/host/bin --disable-dependency-tracking CPPFLAGS="-I$STAGING/include ${OPTFLAGS}" LDFLAGS="-L$STAGING/lib ${OPTFLAGS}" CXXFLAGS="-frandom-seed=faircoin ${OPTFLAGS}"
+    ./configure --enable-upnp-default --bindir=$BINDIR --prefix=$STAGING --host=$HOST --disable-tests --with-qt-plugindir=$STAGING/plugins --with-qt-incdir=$STAGING/include --with-qt-bindir=$STAGING/host/bin --with-boost=$STAGING --disable-maintainer-mode --with-protoc-bindir=$STAGING/host/bin --disable-dependency-tracking CPPFLAGS="-I$STAGING/include ${OPTFLAGS}" LDFLAGS="-L$STAGING/lib ${OPTFLAGS}" CXXFLAGS="-frandom-seed=fair-coin ${OPTFLAGS}"
     export LD_PRELOAD=/usr/lib/faketime/libfaketime.so.1
     export FAKETIME=$REFERENCE_DATETIME
     make $MAKEOPTS
