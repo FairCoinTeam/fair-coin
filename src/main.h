@@ -10,6 +10,7 @@
 #include "net.h"
 #include "script.h"
 #include "scrypt.h"
+#include "hashgroestl.h"
 
 #include <list>
 
@@ -25,6 +26,8 @@ class CInv;
 class CRequestTracker;
 class CNode;
 
+static const int HARD_FORK_HEIGHT_N01 = 15555; // hard fork at block 15555
+
 static const unsigned int MAX_BLOCK_SIZE = 1000000;
 static const unsigned int MAX_BLOCK_SIZE_GEN = MAX_BLOCK_SIZE/2;
 static const unsigned int MAX_BLOCK_SIGOPS = MAX_BLOCK_SIZE/50;
@@ -33,15 +36,8 @@ static const unsigned int MAX_INV_SZ = 50000;
 static const int64 MIN_TX_FEE = 0.1 * CENT;
 static const int64 MIN_RELAY_TX_FEE = 0.1 * CENT;
 static const int64 MAX_MONEY = 10000000000 * COIN; // 50,000,000 initial coins, no effecive limit
-static const int64 MAX_MINT_PROOF_OF_WORK = 100000 * COIN;
-static const int64 MAX_MINT_PROOF_OF_WORK_LEGACY = 100000 * COIN;
 
 static const int64 MIN_TXOUT_AMOUNT = MIN_TX_FEE;
-static const unsigned int PROTOCOL_SWITCH_TIME = 1371686400; // 20 Jun 2013 00:00:00
-
-static const unsigned int REWARD_SWITCH_TIME = 1369432800; // 25 May 2013 00:00:00
-
-static const unsigned int ROUND_SWITCH_TIME = 1375747200; // 6 August 2013 00:00:00
 
 inline bool MoneyRange(int64 nValue) { return (nValue >= 0 && nValue <= MAX_MONEY); }
 // Threshold for nLockTime: below this value it is interpreted as block number, otherwise as UNIX timestamp.
@@ -54,7 +50,7 @@ static const int fHaveUPnP = false;
 #endif
 
 static const uint256 hashGenesisBlockOfficial("0000040517463c65dbd1b52aabce3d50c40a0bdb500cea451cf21ef7138cc2ac");
-static const uint256 hashGenesisBlockTestNet("000015a3e01947fdc864ca2543400918dc90da0034c6644d45e929e127080265");
+static const uint256 hashGenesisBlockTestNet ("000015a3e01947fdc864ca2543400918dc90da0034c6644d45e929e127080265");
 
 static const int64 nMaxClockDrift = 2 * 60 * 60;        // two hours
 
@@ -111,11 +107,11 @@ bool ProcessMessages(CNode* pfrom);
 bool SendMessages(CNode* pto, bool fSendTrickle);
 bool LoadExternalBlockFile(FILE* fileIn);
 void GenerateBitcoins(bool fGenerate, CWallet* pwallet);
-CBlock* CreateNewBlock(CWallet* pwallet, bool fProofOfStake=false);
+CBlock* CreateNewBlock(CWallet* pwallet, bool fProofOfStake, int algo);
 void IncrementExtraNonce(CBlock* pblock, CBlockIndex* pindexPrev, unsigned int& nExtraNonce);
 void FormatHashBuffers(CBlock* pblock, char* pmidstate, char* pdata, char* phash1);
 bool CheckWork(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey);
-bool CheckProofOfWork(uint256 hash, unsigned int nBits);
+bool CheckProofOfWork(uint256 hash, unsigned int nBits, int algo);
 int64 GetProofOfWorkReward(unsigned int nBits);
 int64 GetProofOfStakeReward(int64 nCoinAge, unsigned int nBits, unsigned int nTime);
 unsigned int ComputeMinWork(unsigned int nBase, int64 nTime);
@@ -125,10 +121,50 @@ std::string GetWarnings(std::string strFor);
 bool GetTransaction(const uint256 &hash, CTransaction &tx, uint256 &hashBlock);
 uint256 WantedByOrphan(const CBlock* pblockOrphan);
 const CBlockIndex* GetLastBlockIndex(const CBlockIndex* pindex, bool fProofOfStake);
-void BitcoinMiner(CWallet *pwallet, bool fProofOfStake);
+void FairCoinMiner(CWallet *pwallet, bool fProofOfStake);
 void ResendWalletTransactions();
 
+enum
+{
+    ALGO_SCRYPT  = 0,
+    ALGO_GROESTL = 1,
+    NUM_ALGOS
+};
 
+enum
+{
+    // primary version
+    BLOCK_VERSION_DEFAULT        = 4,
+
+    // algo
+    BLOCK_VERSION_ALGO           = (7 << 9),
+    BLOCK_VERSION_SCRYPT         = (0 << 9),
+    BLOCK_VERSION_GROESTL        = (1 << 9)
+};
+
+inline int GetAlgo(int nVersion)
+{
+    switch (nVersion & BLOCK_VERSION_ALGO)
+    {
+        case BLOCK_VERSION_SCRYPT:
+            return ALGO_SCRYPT;
+        case BLOCK_VERSION_GROESTL:
+            return ALGO_GROESTL;
+    }
+    return ALGO_SCRYPT;
+}
+
+inline std::string GetAlgoName(int Algo)
+{
+    switch (Algo)
+    {
+        case ALGO_SCRYPT:
+            return std::string("scrypt");
+        case ALGO_GROESTL:
+            return std::string("groestl");
+    }
+    return std::string("unknown");
+}
 
 
 
@@ -838,7 +874,7 @@ class CBlock
 {
 public:
     // header
-    static const int CURRENT_VERSION=4;
+    static const int CURRENT_VERSION = BLOCK_VERSION_DEFAULT;
     int nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
@@ -863,6 +899,8 @@ public:
     {
         SetNull();
     }
+
+    int GetAlgo() const { return ::GetAlgo(nVersion); }
 
     IMPLEMENT_SERIALIZE
     (
@@ -911,6 +949,18 @@ public:
         uint256 thash;
         scrypt_1024_1_1_256(BEGIN(nVersion), BEGIN(thash));
         return thash;
+    }
+
+    uint256 GetPoWHash(int algo) const
+    {
+        switch (algo)
+        {
+            case ALGO_SCRYPT:
+                return GetHash();
+            case ALGO_GROESTL:
+                return HashGroestl(BEGIN(nVersion), END(nNonce));
+        }
+        return GetHash();
     }
 
     int64 GetBlockTime() const
@@ -1064,19 +1114,18 @@ public:
         }
 
         // Check the header
-        if (fReadTransactions && IsProofOfWork() && !CheckProofOfWork(GetHash(), nBits))
+        if (fReadTransactions && IsProofOfWork() && !CheckProofOfWork(GetPoWHash(GetAlgo()), nBits, GetAlgo()))
             return error("CBlock::ReadFromDisk() : errors in block header");
 
         return true;
     }
 
-
-
     void print() const
     {
-        printf("CBlock(hash=%s, ver=%d, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nBits=%08x, nNonce=%u, vtx=%"PRIszu", vchBlockSig=%s)\n",
+        printf("CBlock(hash=%s, ver=%d, algo=%d, mined_hash=%s, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nBits=%08x, nNonce=%u, vtx=%"PRIszu", vchBlockSig=%s)\n",
             GetHash().ToString().c_str(),
-            nVersion,
+            nVersion, GetAlgo(),
+            GetPoWHash(GetAlgo()).ToString().c_str(),
             hashPrevBlock.ToString().c_str(),
             hashMerkleRoot.ToString().c_str(),
             nTime, nBits, nNonce,
@@ -1240,7 +1289,14 @@ public:
         return (int64)nTime;
     }
 
-    CBigNum GetBlockTrust() const;
+    CBigNum GetBlockTrust() const
+    {
+        CBigNum bnTarget;
+        bnTarget.SetCompact(nBits);
+        if (bnTarget <= 0)
+            return 0;
+        return (IsProofOfStake() ? (CBigNum(1)<<256) / (bnTarget+1) : 1);
+    }
 
     bool IsInMainChain() const
     {

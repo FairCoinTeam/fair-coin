@@ -30,6 +30,12 @@ else
   CXXFLAGS_overridden=no
 fi
 
+if test "x${CFLAGS+set}" = "xset"; then
+  CFLAGS_overridden=yes
+else
+  CFLAGS_overridden=no
+fi
+
 dnl ==============================================================
 dnl Setup for automake
 dnl ==============================================================
@@ -172,6 +178,11 @@ if test "x$CXXFLAGS_overridden" = "xno"; then
   CXXFLAGS="$CXXFLAGS -Wall -Wextra -Wformat -Wformat-security -Wno-unused-parameter"
 fi
 CPPFLAGS="$CPPFLAGS -DBOOST_SPIRIT_THREADSAFE -DHAVE_BUILD_INFO -D__STDC_FORMAT_MACROS"
+
+if test "x$CFLAGS_overridden" = "xno"; then
+  CFLAGS="$CFLAGS -Wall -Wextra -Wformat -Wformat-security -Wno-unused-parameter"
+fi
+CFLAGS="$CFLAGS -DHAVE_BUILD_INFO"
 
 AC_LANG_PUSH([C++])
 
@@ -371,6 +382,7 @@ if test x$use_hardening != xno; then
   fi
 
   CXXFLAGS="$CXXFLAGS $HARDENED_CXXFLAGS"
+  CFLAGS="$CFLAGS $HARDENED_CXXFLAGS"
   CPPFLAGS="$CPPFLAGS $HARDENED_CPPFLAGS"
   LDFLAGS="$LDFLAGS $HARDENED_LDFLAGS"
   OBJCXXFLAGS="$CXXFLAGS"
