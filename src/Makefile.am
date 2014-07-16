@@ -63,6 +63,9 @@ BITCOIN_CORE_H = \
   clientversion.h \
   compat.h \
   crypter.h \
+  sph_groestl.h \
+  sph_types.h \
+  hashgroestl.h \
   dbx.h \
   init.h \
   irc.h \
@@ -144,6 +147,7 @@ libbitcoin_common_a_SOURCES = \
   script.cpp \
   kernel.cpp \
   scrypt.cpp \
+  groestl.c \
   sync.cpp \
   $(BITCOIN_CORE_H)
 

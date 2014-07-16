@@ -1309,7 +1309,7 @@ void static ThreadStakeMinter(void* parg)
     try
     {
         vnThreadsRunning[THREAD_MINTER]++;
-        BitcoinMiner(pwallet, true);
+        FairCoinMiner(pwallet, true);
         vnThreadsRunning[THREAD_MINTER]--;
     }
     catch (std::exception& e) {
