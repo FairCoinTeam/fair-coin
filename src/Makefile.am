@@ -188,10 +188,6 @@ FairCoind_LDADD += libbitcoin_wallet.a
 endif
 FairCoind_SOURCES = daemon.cpp
 
-if TARGET_WINDOWS
-FairCoind_SOURCES += bitcoind-res.rc
-endif
-
 FairCoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS)
 FairCoind_CPPFLAGS = $(BITCOIN_INCLUDES)
 

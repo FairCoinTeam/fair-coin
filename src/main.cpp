@@ -941,7 +941,7 @@ uint256 WantedByOrphan(const CBlock* pblockOrphan)
 }
 
 // miner's coin base reward based on nHeight
-int64 GetProofOfWorkReward(unsigned int nHeight)
+int64 GetProofOfWorkReward(int nHeight)
 {
 		if (nHeight >= HARD_FORK_HEIGHT_N01)
 			return 10; // generally only 10 FairCoin satoshis reward for PoW mining after hard fork
@@ -3039,9 +3039,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
         static int nAskedForBlocks = 0;
         if (!pfrom->fClient && !pfrom->fOneShot &&
             (pfrom->nStartingHeight > (nBestHeight - 144)) &&
-            (pfrom->nVersion < NOBLKS_VERSION_START ||
-             pfrom->nVersion >= NOBLKS_VERSION_END) &&
-             (nAskedForBlocks < 1 || vNodes.size() <= 1))
+            (nAskedForBlocks < 1 || vNodes.size() <= 1))
         {
             nAskedForBlocks++;
             pfrom->PushGetBlocks(pindexBest, uint256(0));
@@ -3535,23 +3533,20 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
 
     else if (strCommand == "ping")
     {
-        if (pfrom->nVersion > BIP0031_VERSION)
-        {
-            uint64 nonce = 0;
-            vRecv >> nonce;
-            // Echo the message back with the nonce. This allows for two useful features:
-            //
-            // 1) A remote node can quickly check if the connection is operational
-            // 2) Remote nodes can measure the latency of the network thread. If this node
-            //    is overloaded it won't respond to pings quickly and the remote node can
-            //    avoid sending us more work, like chain download requests.
-            //
-            // The nonce stops the remote getting confused between different pings: without
-            // it, if the remote node sends a ping once per second and this node takes 5
-            // seconds to respond to each, the 5th ping the remote sends would appear to
-            // return very quickly.
-            pfrom->PushMessage("pong", nonce);
-        }
+		uint64 nonce = 0;
+		vRecv >> nonce;
+		// Echo the message back with the nonce. This allows for two useful features:
+		//
+		// 1) A remote node can quickly check if the connection is operational
+		// 2) Remote nodes can measure the latency of the network thread. If this node
+		//    is overloaded it won't respond to pings quickly and the remote node can
+		//    avoid sending us more work, like chain download requests.
+		//
+		// The nonce stops the remote getting confused between different pings: without
+		// it, if the remote node sends a ping once per second and this node takes 5
+		// seconds to respond to each, the 5th ping the remote sends would appear to
+		// return very quickly.
+		pfrom->PushMessage("pong", nonce);
     }
 
 
@@ -3735,10 +3730,7 @@ bool SendMessages(CNode* pto, bool fSendTrickle)
         // right now.
         if (pto->nLastSend && GetTime() - pto->nLastSend > 30 * 60 && pto->vSend.empty()) {
             uint64 nonce = 0;
-            if (pto->nVersion > BIP0031_VERSION)
-                pto->PushMessage("ping", nonce);
-            else
-                pto->PushMessage("ping");
+            pto->PushMessage("ping", nonce);
         }
 
         // Resend wallet transactions that haven't gotten in a block yet
