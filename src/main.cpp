@@ -943,22 +943,21 @@ uint256 WantedByOrphan(const CBlock* pblockOrphan)
 // miner's coin base reward based on nHeight
 int64 GetProofOfWorkReward(unsigned int nHeight)
 {
-		int64 nSubsidy = 0 * COIN;
-
-		if (nHeight > 7684) // the last scrypt mined block before first hard fork
-			nSubsidy = 10; // 10 FairCoin satoshis
-		if (nHeight > 101) // after block 101 pre-mine is complete (50,000,000 coins)
-			nSubsidy = 0.1 * CENT;
+		if (nHeight >= HARD_FORK_HEIGHT_N01)
+			return 10; // generally only 10 FairCoin satoshis reward for PoW mining after hard fork
+		else if (nHeight > 101) // after block 101 pre-mine is complete (50,000,000 coins)
+			return 0.1 * CENT;
 		else if (nHeight == 0) // if we are called with nHeight of zero
-		    nSubsidy = 0.1 * CENT;
+			return 10;
 		else if (nHeight == 1)
-		    nSubsidy = 50 * COIN;
+			return 50 * COIN;
 		else if (nHeight == 2)
-            nSubsidy = 499950 * COIN;
+			return 499950 * COIN;
 		else if (nHeight < 102)
-			nSubsidy = 500000 * COIN;
+			return 500000 * COIN;
 
-    	return nSubsidy;
+    	// never reached
+		return 0;
 }
 
 // miner's coin stake reward based on nBits and coin age spent (coin-days)
@@ -1011,7 +1010,7 @@ const CBlockIndex* GetLastBlockIndex(const CBlockIndex* pindex, bool fProofOfSta
 }
 
 unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, uint64 TargetBlocksSpacingSeconds) {
-    /* current difficulty formula, darkcoin - DarkGravity v3, written by Evan Duffield - evan@darkcoin.io */
+    /* difficulty formula, DarkGravity v3, written by Evan Duffield - evan@darkcoin.io */
     const CBlockIndex *BlockLastSolved = pindexLast;
     const CBlockIndex *BlockReading = pindexLast;
 
@@ -1027,9 +1026,9 @@ unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, uint64 Targe
         return bnProofOfWorkLimit.GetCompact();
     }
 
-    unsigned int i = 1;
     while (BlockReading && BlockReading->nHeight > 0) {
-        if (PastBlocksMax > 0 && i > PastBlocksMax) { break; }
+        if (PastBlocksMax > 0 && CountBlocks >= PastBlocksMax)
+        	break;
 
         // we only consider proof-of-work blocks here
         if (BlockReading->IsProofOfStake()) {
@@ -1037,22 +1036,28 @@ unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, uint64 Targe
             continue;
         }
 
-        i++;
         CountBlocks++;
 
-        if(CountBlocks <= PastBlocksMin) {
-            if (CountBlocks == 1) { PastDifficultyAverage.SetCompact(BlockReading->nBits); }
-            else { PastDifficultyAverage = ((PastDifficultyAveragePrev * CountBlocks)+(CBigNum().SetCompact(BlockReading->nBits))) / (CountBlocks+1); }
-            PastDifficultyAveragePrev = PastDifficultyAverage;
-        }
+		if (CountBlocks <= PastBlocksMin) {
+			if (CountBlocks == 1)
+				PastDifficultyAverage.SetCompact(BlockReading->nBits);
+			else
+				PastDifficultyAverage =
+					((PastDifficultyAveragePrev * CountBlocks) + (CBigNum().SetCompact(BlockReading->nBits))) / (CountBlocks + 1);
 
-        if(LastBlockTime > 0){
-            int64 Diff = (LastBlockTime - BlockReading->GetBlockTime());
+			PastDifficultyAveragePrev = PastDifficultyAverage;
+		}
+
+        if (LastBlockTime > 0){
+        	int64 Diff = (LastBlockTime - BlockReading->GetBlockTime());
             nActualTimespan += Diff;
         }
         LastBlockTime = BlockReading->GetBlockTime();
 
-        if (BlockReading->pprev == NULL) { assert(BlockReading); break; }
+        if (BlockReading->pprev == NULL) {
+            assert(BlockReading);
+            break;
+        }
         BlockReading = BlockReading->pprev;
     }
 
@@ -1060,8 +1065,12 @@ unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, uint64 Targe
 
     int64 nTargetTimespan = CountBlocks * TargetBlocksSpacingSeconds;
 
+    if (GetBoolArg("-debugdgw"))
+    	printf("DGW: nActualTimespan = %"PRI64d", nTargetTimespan = %"PRI64d"\n", nActualTimespan, nTargetTimespan);
+
     if (nActualTimespan < nTargetTimespan/3)
         nActualTimespan = nTargetTimespan/3;
+
     if (nActualTimespan > nTargetTimespan*3)
         nActualTimespan = nTargetTimespan*3;
 
@@ -1069,15 +1078,15 @@ unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, uint64 Targe
     bnNew *= nActualTimespan;
     bnNew /= nTargetTimespan;
 
-    if (bnNew > bnProofOfWorkLimit){
+    if (bnNew > bnProofOfWorkLimit)
         bnNew = bnProofOfWorkLimit;
-    }
 
     if (GetBoolArg("-debugdgw")) {
         printf("Difficulty Retarget - Dark Gravity Well version 3 at height: %d\n", pindexLast->nHeight);
-        printf("PastDifficultyAverage: %08x  %s\n", PastDifficultyAverage.GetCompact(), PastDifficultyAverage.getuint256().ToString().c_str());
-        printf("Before:                %08x  %s\n", BlockLastSolved->nBits, CBigNum().SetCompact(BlockLastSolved->nBits).getuint256().ToString().c_str());
-        printf("After:                 %08x  %s\n", bnNew.GetCompact(), bnNew.getuint256().ToString().c_str());
+        printf("  nActualTimespan = %"PRI64d", nTargetTimespan = %"PRI64d"\n", nActualTimespan, nTargetTimespan);
+        printf("  PastDifficultyAverage: %08x  %s\n", PastDifficultyAverage.GetCompact(), PastDifficultyAverage.getuint256().ToString().c_str());
+        printf("  Before:                %08x  %s\n", BlockLastSolved->nBits, CBigNum().SetCompact(BlockLastSolved->nBits).getuint256().ToString().c_str());
+        printf("  After:                 %08x  %s\n\n\n", bnNew.GetCompact(), bnNew.getuint256().ToString().c_str());
     }
 
     return bnNew.GetCompact();
@@ -2956,23 +2965,14 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
         CAddress addrFrom;
         uint64 nNonce = 1;
         vRecv >> pfrom->nVersion >> pfrom->nServices >> nTime >> addrMe;
-        if (pfrom->nVersion < MIN_PROTO_VERSION)
+        if (pindexBest->nHeight >= HARD_FORK_HEIGHT_N01 && pfrom->nVersion < MIN_PROTO_VERSION)
         {
-            // Disconnect old wallets with faulty blockchain
-            printf("partner %s using obsolete version (forked) %i; disconnecting\n", pfrom->addr.ToString().c_str(), pfrom->nVersion);
+            // Disconnect old wallets
+        	printf("partner %s using obsolete version %i; disconnecting\n", pfrom->addr.ToString().c_str(), pfrom->nVersion);
             pfrom->fDisconnect = true;
             return false;
         }
 
-        if (nTime > 1396147905 && pfrom->nVersion < 80001) {
-            // Disconnect old wallets with faulty blockchain
-            printf("partner %s using obsolete version (70001) %i; disconnecting\n", pfrom->addr.ToString().c_str(), pfrom->nVersion);
-            pfrom->fDisconnect = true;
-            return false;
-        }
-
-        if (pfrom->nVersion == 10300)
-            pfrom->nVersion = 300;
         if (!vRecv.empty())
             vRecv >> addrFrom >> nNonce;
         if (!vRecv.empty())
