@@ -6,9 +6,9 @@ Grøstl PoW/PoS hybrid
 50,000,000 premined coins  
 Flat 6%/year minting reward, halving every year until baseline of 1.5%  
 21/90 days min/max weight  
-5 minutes block target for PoW
-10 minutes block target for PoS
-3.33 minutes in total
+5 minutes block target for PoW  
+10 minutes block target for PoS  
+3.33 minutes in total  
   
 Dark Gravity Well version 3 difficulty re-targeting
   
