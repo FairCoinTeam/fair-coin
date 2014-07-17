@@ -131,6 +131,10 @@ public:
 
     bool RelayTo(CNode* pnode) const
     {
+        // we only relay sync-checkpoints to fully connected nodes
+        if (!pnode->fSuccessfullyConnected)
+            return false;
+
         // returns true if wasn't already sent
         if (pnode->hashCheckpointKnown != hashCheckpoint)
         {
