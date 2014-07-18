@@ -381,6 +381,20 @@ bool AppInit2()
         SoftSetBoolArg("-rescan", true);
     }
 
+    // determine mining Algo
+    std::string strAlgo = GetArg("-algo", "groestl");
+    transform(strAlgo.begin(),strAlgo.end(),strAlgo.begin(),::tolower);
+    if (strAlgo == "sha" || strAlgo == "sha256" || strAlgo == "sha256d")
+        miningAlgo = ALGO_SHA256D;
+    else if (strAlgo == "scrypt")
+        miningAlgo = ALGO_SCRYPT;
+    else if (strAlgo == "groestl")
+        miningAlgo = ALGO_GROESTL;
+
+    bnProofOfWorkLimit[ALGO_SCRYPT]  = CBigNum(~uint256(0) >> 20);
+    bnProofOfWorkLimit[ALGO_GROESTL] = CBigNum(~uint256(0) >> 20);
+    bnProofOfWorkLimit[ALGO_SHA256D] = CBigNum(~uint256(0) >> 20);
+
     // ********************************************************* Step 3: parameter-to-internal-flags
 
     fDebug = GetBoolArg("-debug");
@@ -475,7 +489,9 @@ bool AppInit2()
     if (!fLogTimestamps)
         printf("Startup time: %s\n", DateTimeStrFormat("%x %H:%M:%S", GetTime()).c_str());
     printf("Default data directory %s\n", GetDefaultDataDir().string().c_str());
+    printf("Default wallet hash algo: %s\n", GetAlgoName(miningAlgo).c_str());
     printf("Used data directory %s\n", strDataDir.c_str());
+
     std::ostringstream strErrors;
 
     if (fDaemon)

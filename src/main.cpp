@@ -33,9 +33,10 @@ unsigned int nTransactionsUpdated = 0;
 map<uint256, CBlockIndex*> mapBlockIndex;
 set<pair<COutPoint, unsigned int> > setStakeSeen;
 uint256 hashGenesisBlock = hashGenesisBlockOfficial;
-static CBigNum bnProofOfWorkLimit(~uint256(0) >> 20);
-static CBigNum bnProofOfWorkLimitGroestl(~uint256(0) >> 20);
-static CBigNum bnProofOfStakeLimit(~uint256(0) >> 24);
+
+CBigNum bnProofOfWorkLimit[NUM_ALGOS];
+
+static CBigNum bnProofOfStakeLimit(~uint256(0) >> 24); // PoS is always scrypt
 static CBigNum bnProofOfStakeHardLimit(~uint256(0) >> 30); // disabled temporarily, will be used in the future to fix minimum PoS difficulty at 0.25
 
 
@@ -74,6 +75,8 @@ const string strMessageMagic = "FairCoin Signed Message:\n";
 
 double dHashesPerSec;
 int64 nHPSTimerStart;
+
+int miningAlgo = ALGO_GROESTL;
 
 // Settings
 int64 nTransactionFee = MIN_TX_FEE;
@@ -985,7 +988,7 @@ static const int64 nTargetSpacingWorkMax = 20 * 60; // 20 minutes
 //
 unsigned int ComputeMinWork(unsigned int nBase, int64 nTime)
 {
-    CBigNum bnTargetLimit = bnProofOfWorkLimit;
+    /*CBigNum bnTargetLimit = bnProofOfWorkLimit;
 
     CBigNum bnResult;
     bnResult.SetCompact(nBase);
@@ -998,7 +1001,9 @@ unsigned int ComputeMinWork(unsigned int nBase, int64 nTime)
     }
     if (bnResult > bnTargetLimit)
         bnResult = bnTargetLimit;
-    return bnResult.GetCompact();
+    return bnResult.GetCompact();*/
+
+    return bnProofOfWorkLimit[ALGO_SCRYPT].GetCompact();
 }
 
 // ppcoin: find last block index up to pindex
@@ -1009,7 +1014,7 @@ const CBlockIndex* GetLastBlockIndex(const CBlockIndex* pindex, bool fProofOfSta
     return pindex;
 }
 
-unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, uint64 TargetBlocksSpacingSeconds) {
+unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, uint64 TargetBlocksSpacingSeconds, int algo) {
     /* difficulty formula, DarkGravity v3, written by Evan Duffield - evan@darkcoin.io */
     const CBlockIndex *BlockLastSolved = pindexLast;
     const CBlockIndex *BlockReading = pindexLast;
@@ -1023,16 +1028,16 @@ unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, uint64 Targe
     CBigNum PastDifficultyAveragePrev;
 
     if (BlockLastSolved == NULL || BlockLastSolved->nHeight == 0 || BlockLastSolved->nHeight < PastBlocksMin) {
-        return bnProofOfWorkLimit.GetCompact();
+        return bnProofOfWorkLimit[miningAlgo].GetCompact();
     }
 
     while (BlockReading && BlockReading->nHeight > 0) {
         if (PastBlocksMax > 0 && CountBlocks >= PastBlocksMax)
         	break;
 
-        // we only consider proof-of-work blocks here
-        if (BlockReading->IsProofOfStake()) {
-            BlockReading = BlockReading->pprev;
+        // we only consider proof-of-work blocks for the configured mining algo here
+        if (BlockReading->IsProofOfStake() || GetAlgo(BlockReading->nVersion) != algo) {
+        	BlockReading = BlockReading->pprev;
             continue;
         }
 
@@ -1061,12 +1066,15 @@ unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, uint64 Targe
         BlockReading = BlockReading->pprev;
     }
 
+    if (!CountBlocks)
+        return bnProofOfWorkLimit[miningAlgo].GetCompact();
+
     CBigNum bnNew(PastDifficultyAverage);
 
     int64 nTargetTimespan = CountBlocks * TargetBlocksSpacingSeconds;
 
     if (GetBoolArg("-debugdgw"))
-    	printf("DGW: nActualTimespan = %"PRI64d", nTargetTimespan = %"PRI64d"\n", nActualTimespan, nTargetTimespan);
+    	printf("DGW: algo: %s, nActualTimespan = %"PRI64d", nTargetTimespan = %"PRI64d"\n", GetAlgoName(algo).c_str(), nActualTimespan, nTargetTimespan);
 
     if (nActualTimespan < nTargetTimespan/3)
         nActualTimespan = nTargetTimespan/3;
@@ -1078,8 +1086,8 @@ unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, uint64 Targe
     bnNew *= nActualTimespan;
     bnNew /= nTargetTimespan;
 
-    if (bnNew > bnProofOfWorkLimit)
-        bnNew = bnProofOfWorkLimit;
+    if (bnNew > bnProofOfWorkLimit[algo])
+        bnNew = bnProofOfWorkLimit[algo];
 
     if (GetBoolArg("-debugdgw")) {
         printf("Difficulty Retarget - Dark Gravity Well version 3 at height: %d\n", pindexLast->nHeight);
@@ -1092,13 +1100,13 @@ unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, uint64 Targe
     return bnNew.GetCompact();
 }
 
-unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfStake)
+unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfStake, int algo)
 {
     if (pindexLast == NULL)
-        return bnProofOfWorkLimit.GetCompact(); // genesis block
+        return bnProofOfWorkLimit[ALGO_SCRYPT].GetCompact(); // genesis block
 
     // Proof-of-Stake blocks has own target limit
-    CBigNum bnTargetLimit = fProofOfStake ? bnProofOfStakeLimit : bnProofOfWorkLimit;
+    CBigNum bnTargetLimit = fProofOfStake ? bnProofOfStakeLimit : bnProofOfWorkLimit[algo];
 
     const CBlockIndex* pindexPrev = GetLastBlockIndex(pindexLast, fProofOfStake);
     if (pindexPrev->pprev == NULL)
@@ -1110,7 +1118,7 @@ unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfS
     // the last PoW mined block before hard fork 1 was at height 7684
     if (!fProofOfStake && (pindexPrev->nHeight >= 7684 || fTestNet))
     {
-        return DarkGravityWave3(pindexLast, nProofOfWorkTargetSpacing);
+        return DarkGravityWave3(pindexLast, nProofOfWorkTargetSpacing, algo);
     }
 
     int64 nActualSpacing = pindexPrev->GetBlockTime() - pindexPrevPrev->GetBlockTime();
@@ -1140,7 +1148,7 @@ unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfS
 
 bool CheckProofOfWork(uint256 hash, unsigned int nBits, int algo)
 {
-    CBigNum bnTarget, limit = (algo == ALGO_GROESTL ? bnProofOfWorkLimitGroestl : bnProofOfWorkLimit);
+    CBigNum bnTarget, limit = bnProofOfWorkLimit[algo];
     bnTarget.SetCompact(nBits);
 
     // Check range
@@ -1891,12 +1899,12 @@ bool CBlock::SetBestChain(CTxDB& txdb, CBlockIndex* pindexNew)
         const CBlockIndex* pindex = pindexBest;
         for (int i = 0; i < 100 && pindex != NULL; i++)
         {
-            if (pindex->nVersion > (BLOCK_VERSION_DEFAULT | BLOCK_VERSION_GROESTL))
+            if (pindex->nVersion > (BLOCK_VERSION_DEFAULT | BLOCK_VERSION_SHA256D))
                 ++nUpgraded;
             pindex = pindex->pprev;
         }
         if (nUpgraded > 0)
-            printf("SetBestChain: %d of last 100 blocks above version %d\n", nUpgraded, (BLOCK_VERSION_DEFAULT | BLOCK_VERSION_GROESTL));
+            printf("SetBestChain: %d of last 100 blocks above version %d\n", nUpgraded, (BLOCK_VERSION_DEFAULT | BLOCK_VERSION_SHA256D));
         if (nUpgraded > 100/2)
             // strMiscWarning is read by GetWarnings(), called by Qt and the JSON-RPC code to warn the user:
             strMiscWarning = _("Warning: This version is obsolete, upgrade required!");
@@ -2165,7 +2173,7 @@ bool CBlock::AcceptBlock()
     int nHeight = pindexPrev->nHeight+1;
 
     // Check proof-of-work or proof-of-stake
-    if (nBits != GetNextTargetRequired(pindexPrev, IsProofOfStake()))
+    if (nBits != GetNextTargetRequired(pindexPrev, IsProofOfStake(), GetAlgo()))
         return DoS(100, error("AcceptBlock() : incorrect %s", IsProofOfWork() ? "proof-of-work" : "proof-of-stake"));
 
     // Check timestamp against prev
@@ -2194,8 +2202,10 @@ bool CBlock::AcceptBlock()
         }
     }
 
-    // Reject block.nVersion not BLOCK_VERSION_DEFAULT or BLOCK_VERSION_GROESTL and is not genesis block
-    if (nVersion != (BLOCK_VERSION_GROESTL | BLOCK_VERSION_DEFAULT) && nVersion != BLOCK_VERSION_DEFAULT && nHeight > 0)
+    // Reject block.nVersion not BLOCK_VERSION_DEFAULT or BLOCK_VERSION_GROESTL or BLOCK_VERSION_SHA256D and is not genesis block
+    if (nVersion != (BLOCK_VERSION_GROESTL | BLOCK_VERSION_DEFAULT) &&
+    		nVersion != (BLOCK_VERSION_SHA256D | BLOCK_VERSION_DEFAULT) &&
+    		nVersion != BLOCK_VERSION_DEFAULT && nHeight > 0)
         return error("CheckBlock() : rejected nVersion");
 
     // Enforce rule that the coinbase starts with serialized block height
@@ -2546,7 +2556,6 @@ bool LoadBlockIndex(bool fAllowNew)
         pchMessageStart[3] = 0xef;
 
         bnProofOfStakeLimit = bnProofOfStakeLimitTestNet; // 0x00000fff PoS base target is fixed in testnet
-        bnProofOfWorkLimit = bnProofOfWorkLimitTestNet; // 0x0000ffff PoW base target is fixed in testnet
         hashGenesisBlock = hashGenesisBlockTestNet;
         nStakeMinAge = 24 * 60 * 60; // test net min age is 24 hours
         nModifierInterval = 20 * 60; // test modifier interval is 20 minutes
@@ -2591,7 +2600,7 @@ bool LoadBlockIndex(bool fAllowNew)
         block.hashMerkleRoot = block.BuildMerkleTree();
         block.nVersion = 1;
         block.nTime    = nChainStartTime + 15;
-        block.nBits    = bnProofOfWorkLimit.GetCompact();
+        block.nBits    = bnProofOfWorkLimit[ALGO_SCRYPT].GetCompact();
         block.nNonce   = fTestNet ? 3631470 : 3477225;
 
 #if 0
@@ -4002,6 +4011,9 @@ CBlock* CreateNewBlock(CWallet* pwallet, bool fProofOfStake, int algo)
 			case ALGO_GROESTL:
 				pblock->nVersion |= BLOCK_VERSION_GROESTL;
 				break;
+			case ALGO_SHA256D:
+				pblock->nVersion |= BLOCK_VERSION_SHA256D;
+				break;
 			default:
 				error("CreateNewBlock: bad algo");
 				return NULL;
@@ -4048,7 +4060,7 @@ CBlock* CreateNewBlock(CWallet* pwallet, bool fProofOfStake, int algo)
 
     if (fProofOfStake)  // attempt to find a coinstake
     {
-        pblock->nBits = GetNextTargetRequired(pindexPrev, true);
+        pblock->nBits = GetNextTargetRequired(pindexPrev, true, algo);
         CTransaction txCoinStake;
         int64 nSearchTime = txCoinStake.nTime; // search to current time
         if (nSearchTime > nLastCoinStakeSearchTime)
@@ -4069,7 +4081,7 @@ CBlock* CreateNewBlock(CWallet* pwallet, bool fProofOfStake, int algo)
     }
     else
     {
-        pblock->nBits = GetNextTargetRequired(pindexPrev, false);
+        pblock->nBits = GetNextTargetRequired(pindexPrev, false, algo);
     }
 
     // Collect memory pool transactions into the block
@@ -4435,7 +4447,7 @@ void FairCoinMiner(CWallet *pwallet, bool fProofOfStake)
         unsigned int nTransactionsUpdatedLast = nTransactionsUpdated;
         CBlockIndex* pindexPrev = pindexBest;
 
-        auto_ptr<CBlock> pblock(CreateNewBlock(pwallet, fProofOfStake, fProofOfStake ? ALGO_SCRYPT : ALGO_GROESTL));
+        auto_ptr<CBlock> pblock(CreateNewBlock(pwallet, fProofOfStake, fProofOfStake ? ALGO_SCRYPT : miningAlgo));
         if (!pblock.get())
             return;
         IncrementExtraNonce(pblock.get(), pindexPrev, nExtraNonce);
@@ -4490,7 +4502,7 @@ void FairCoinMiner(CWallet *pwallet, bool fProofOfStake)
             uint256 thash;
             loop
             {
-                thash = pblock->GetPoWHash(ALGO_GROESTL);
+                thash = pblock->GetPoWHash(miningAlgo);
                 if (thash <= hashTarget)
                 {
                     // Found a solution

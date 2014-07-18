@@ -85,6 +85,8 @@ extern std::map<uint256, CBlock*> mapOrphanBlocks;
 // Settings
 extern int64 nTransactionFee;
 
+extern int miningAlgo;
+
 // Minimum disk space required - used in CheckDiskSpace()
 static const uint64 nMinDiskSpace = 52428800;
 
@@ -128,8 +130,11 @@ enum
 {
     ALGO_SCRYPT  = 0,
     ALGO_GROESTL = 1,
+    ALGO_SHA256D = 2,
     NUM_ALGOS
 };
+
+extern CBigNum bnProofOfWorkLimit[NUM_ALGOS];
 
 enum
 {
@@ -139,7 +144,8 @@ enum
     // algo
     BLOCK_VERSION_ALGO           = (7 << 9),
     BLOCK_VERSION_SCRYPT         = (0 << 9),
-    BLOCK_VERSION_GROESTL        = (1 << 9)
+    BLOCK_VERSION_GROESTL        = (1 << 9),
+    BLOCK_VERSION_SHA256D        = (2 << 9)
 };
 
 inline int GetAlgo(int nVersion)
@@ -150,6 +156,8 @@ inline int GetAlgo(int nVersion)
             return ALGO_SCRYPT;
         case BLOCK_VERSION_GROESTL:
             return ALGO_GROESTL;
+        case BLOCK_VERSION_SHA256D:
+            return ALGO_SHA256D;
     }
     return ALGO_SCRYPT;
 }
@@ -162,6 +170,8 @@ inline std::string GetAlgoName(int Algo)
             return std::string("scrypt");
         case ALGO_GROESTL:
             return std::string("groestl");
+        case ALGO_SHA256D:
+            return std::string("sha256d");
     }
     return std::string("unknown");
 }
@@ -959,6 +969,8 @@ public:
                 return GetHash();
             case ALGO_GROESTL:
                 return HashGroestl(BEGIN(nVersion), END(nNonce));
+            case ALGO_SHA256D:
+                return Hash(BEGIN(nVersion), END(nNonce));
         }
         return GetHash();
     }

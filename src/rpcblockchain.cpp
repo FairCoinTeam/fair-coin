@@ -128,7 +128,14 @@ Value getblockcount(const Array& params, bool fHelp)
     return nBestHeight;
 }
 
-unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfStake);
+unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfStake, int algo);
+
+static const CBlockIndex* GetLastBlockIndex4Algo(const CBlockIndex* pindex, int algo)
+{
+    while (pindex && pindex->pprev && pindex->IsProofOfStake() && GetAlgo(pindex->nVersion) != algo)
+        pindex = pindex->pprev;
+    return pindex;
+}
 
 Value getdifficulty(const Array& params, bool fHelp)
 {
@@ -137,10 +144,10 @@ Value getdifficulty(const Array& params, bool fHelp)
             "getdifficulty\n"
             "Returns the difficulty as a multiple of the minimum difficulty.");
 
-    const CBlockIndex* lastPoW = GetLastBlockIndex(pindexBest, false);
-    unsigned int nextPoW = GetNextTargetRequired(pindexBest, false);
+    const CBlockIndex* lastPoW = GetLastBlockIndex4Algo(pindexBest, miningAlgo);
+    unsigned int nextPoW = GetNextTargetRequired(pindexBest, false, miningAlgo);
     const CBlockIndex* lastPoS = GetLastBlockIndex(pindexBest, true);
-    unsigned int nextPoS = GetNextTargetRequired(pindexBest, true);
+    unsigned int nextPoS = GetNextTargetRequired(pindexBest, true, ALGO_SCRYPT);
 
     Object obj;
 
