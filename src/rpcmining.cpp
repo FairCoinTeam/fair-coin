@@ -130,6 +130,15 @@ Value getworkex(const Array& params, bool fHelp)
             vNewBlock.push_back(pblock);
         }
 
+        // if difficulty is high and nobody else is mining coinbase time stamp
+        // will eventually expire
+        if (pblock->GetBlockTime() > (int64)pblock->vtx[0].nTime + nMaxClockDrift) {
+            int oldTime = pblock->vtx[0].nTime;
+            pblock->vtx[0].nTime = GetAdjustedTime();
+            pblock->hashMerkleRoot = pblock->BuildMerkleTree();
+        	printf("coinbase time stamp expired: %d. Updating it to: %d\n", oldTime, pblock->vtx[0].nTime);
+        }
+
         // Update nTime
         pblock->nTime = max(pindexPrev->GetMedianTimePast()+1, GetAdjustedTime());
         pblock->nNonce = 0;
@@ -233,7 +242,6 @@ Value getwork(const Array& params, bool fHelp)
     typedef map<uint256, pair<CBlock*, CScript> > mapNewBlock_t;
     static mapNewBlock_t mapNewBlock;    // FIXME: thread safety
     static vector<CBlock*> vNewBlock;
-    static CReserveKey reservekey(pwalletMain);
 
     if (params.size() == 0)
     {
@@ -270,6 +278,15 @@ Value getwork(const Array& params, bool fHelp)
 
             // Need to update only after we know CreateNewBlock succeeded
             pindexPrev = pindexPrevNew;
+        }
+
+        // if difficulty is high and nobody else is mining coinbase time stamp
+        // will eventually expire
+        if (pblock->GetBlockTime() > (int64)pblock->vtx[0].nTime + nMaxClockDrift) {
+            int oldTime = pblock->vtx[0].nTime;
+            pblock->vtx[0].nTime = GetAdjustedTime();
+            pblock->hashMerkleRoot = pblock->BuildMerkleTree();
+        	printf("coinbase time stamp expired: %d. Updating it to: %d\n", oldTime, pblock->vtx[0].nTime);
         }
 
         // Update nTime
@@ -320,10 +337,11 @@ Value getwork(const Array& params, bool fHelp)
         pblock->vtx[0].vin[0].scriptSig = mapNewBlock[pdata->hashMerkleRoot].second;
         pblock->hashMerkleRoot = pblock->BuildMerkleTree();
 
+        assert(pwalletMain != NULL);
         if (!pblock->SignBlock(*pwalletMain))
             throw JSONRPCError(-100, "Unable to sign block, wallet locked?");
 
-        return CheckWork(pblock, *pwalletMain, reservekey);
+        return CheckWork(pblock, *pwalletMain, *pMiningKey);
     }
 }
 
@@ -404,6 +422,15 @@ Value getblocktemplate(const Array& params, bool fHelp)
 
         // Need to update only after we know CreateNewBlock succeeded
         pindexPrev = pindexPrevNew;
+    }
+
+    // if difficulty is high and nobody else is mining coinbase time stamp
+    // will eventually expire
+    if (pblock->GetBlockTime() > (int64)pblock->vtx[0].nTime + nMaxClockDrift) {
+        int oldTime = pblock->vtx[0].nTime;
+        pblock->vtx[0].nTime = GetAdjustedTime();
+        pblock->hashMerkleRoot = pblock->BuildMerkleTree();
+    	printf("coinbase time stamp expired: %d. Updating it to: %d\n", oldTime, pblock->vtx[0].nTime);
     }
 
     // Update nTime

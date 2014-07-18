@@ -4069,7 +4069,7 @@ CBlock* CreateNewBlock(CWallet* pwallet, bool fProofOfStake, int algo)
     }
     else
     {
-        pblock->nBits = GetNextTargetRequired(pindexPrev, pblock->IsProofOfStake());
+        pblock->nBits = GetNextTargetRequired(pindexPrev, false);
     }
 
     // Collect memory pool transactions into the block

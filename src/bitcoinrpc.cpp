@@ -35,6 +35,10 @@ using namespace json_spirit;
 
 void ThreadRPCServer2(void* parg);
 
+// Key used by getwork/getblocktemplate miners.
+// Allocated in StartRPCThreads, free'd in StopRPCThreads
+CReserveKey* pMiningKey = NULL;
+
 static std::string strRPCUserColonPass;
 
 const Object emptyobj;
@@ -632,6 +636,9 @@ void ThreadRPCServer(void* parg)
     // Make this thread recognisable as the RPC listener
     RenameThread("bitcoin-rpclist");
 
+    // getwork/getblocktemplate mining rewards paid here:
+    pMiningKey = new CReserveKey(pwalletMain);
+
     try
     {
         vnThreadsRunning[THREAD_RPCLISTENER]++;
@@ -645,6 +652,9 @@ void ThreadRPCServer(void* parg)
         vnThreadsRunning[THREAD_RPCLISTENER]--;
         PrintException(NULL, "ThreadRPCServer()");
     }
+
+    delete pMiningKey; pMiningKey = NULL;
+
     printf("ThreadRPCServer exited\n");
 }
 
