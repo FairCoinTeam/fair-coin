@@ -1074,7 +1074,7 @@ unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, uint64 Targe
     int64 nTargetTimespan = CountBlocks * TargetBlocksSpacingSeconds;
 
     if (GetBoolArg("-debugdgw"))
-    	printf("DGW: algo: %s, nActualTimespan = %"PRI64d", nTargetTimespan = %"PRI64d"\n", GetAlgoName(algo).c_str(), nActualTimespan, nTargetTimespan);
+    	printf("DGW(%s): nActualTimespan = %"PRI64d", nTargetTimespan = %"PRI64d"\n", GetAlgoName(algo).c_str(), nActualTimespan, nTargetTimespan);
 
     if (nActualTimespan < nTargetTimespan/3)
         nActualTimespan = nTargetTimespan/3;
