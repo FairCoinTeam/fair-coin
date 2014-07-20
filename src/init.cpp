@@ -489,7 +489,7 @@ bool AppInit2()
     if (!fLogTimestamps)
         printf("Startup time: %s\n", DateTimeStrFormat("%x %H:%M:%S", GetTime()).c_str());
     printf("Default data directory %s\n", GetDefaultDataDir().string().c_str());
-    printf("Default wallet hash algo: %s\n", GetAlgoName(miningAlgo).c_str());
+    printf("Default mining hash algorithm: %s\n", GetAlgoName(miningAlgo).c_str());
     printf("Used data directory %s\n", strDataDir.c_str());
 
     std::ostringstream strErrors;
