@@ -946,12 +946,10 @@ uint256 WantedByOrphan(const CBlock* pblockOrphan)
 // miner's coin base reward based on nHeight
 int64 GetProofOfWorkReward(int nHeight)
 {
-		if (nHeight >= HARD_FORK_HEIGHT_N01)
-			return 10; // generally only 10 FairCoin satoshis reward for PoW mining after hard fork
-		else if (nHeight > 101) // after block 101 pre-mine is complete (50,000,000 coins)
+		if (nHeight > 101) // after block 101 pre-mine is complete (50,000,000 coins)
 			return 0.1 * CENT;
 		else if (nHeight == 0) // if we are called with nHeight of zero
-			return 10;
+			return 0.1 * CENT;
 		else if (nHeight == 1)
 			return 50 * COIN;
 		else if (nHeight == 2)
@@ -960,7 +958,7 @@ int64 GetProofOfWorkReward(int nHeight)
 			return 500000 * COIN;
 
     	// never reached
-		return 0;
+		return 0.1 * CENT;
 }
 
 // miner's coin stake reward based on nBits and coin age spent (coin-days)
@@ -2974,10 +2972,18 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
         CAddress addrFrom;
         uint64 nNonce = 1;
         vRecv >> pfrom->nVersion >> pfrom->nServices >> nTime >> addrMe;
-        if (pindexBest->nHeight >= HARD_FORK_HEIGHT_N01 && pfrom->nVersion < MIN_PROTO_VERSION)
+        if (pindexBest->nHeight >= HARD_FORK_HEIGHT_N01 && pfrom->nVersion < MIN_PROTO_VERSION_HF1)
         {
             // Disconnect old wallets
-        	printf("partner %s using obsolete version %i; disconnecting\n", pfrom->addr.ToString().c_str(), pfrom->nVersion);
+        	printf("partner %s using obsolete version %i; disconnecting HF1\n", pfrom->addr.ToString().c_str(), pfrom->nVersion);
+            pfrom->fDisconnect = true;
+            return false;
+        }
+
+        if (pindexBest->nHeight >= HARD_FORK_HEIGHT_N02 && pfrom->nVersion < MIN_PROTO_VERSION)
+        {
+            // Disconnect old wallets
+        	printf("partner %s using obsolete version %i; disconnecting HF2\n", pfrom->addr.ToString().c_str(), pfrom->nVersion);
             pfrom->fDisconnect = true;
             return false;
         }

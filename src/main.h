@@ -27,6 +27,7 @@ class CRequestTracker;
 class CNode;
 
 static const int HARD_FORK_HEIGHT_N01 = 15555; // hard fork at block 15555
+static const int HARD_FORK_HEIGHT_N02 = 15680; // hard fork at block 15680
 
 static const unsigned int MAX_BLOCK_SIZE = 1000000;
 static const unsigned int MAX_BLOCK_SIZE_GEN = MAX_BLOCK_SIZE/2;
