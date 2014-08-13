@@ -36,6 +36,9 @@ QT_MOC_CPP = \
   qt/moc_macdockiconhandler.cpp \
   qt/moc_macnotificationhandler.cpp \
   qt/moc_monitoreddatamapper.cpp \
+  qt/moc_mintingfilterproxy.cpp \
+  qt/moc_mintingtablemodel.cpp \
+  qt/moc_mintingview.cpp \
   qt/moc_notificator.cpp \
   qt/moc_optionsdialog.cpp \
   qt/moc_optionsmodel.cpp \
@@ -81,7 +84,11 @@ BITCOIN_QT_H = \
   qt/editaddressdialog.h \
   qt/guiconstants.h \
   qt/guiutil.h \
+  qt/kernelrecord.h \
   qt/macdockiconhandler.h \
+  qt/mintingfilterproxy.h \
+  qt/mintingtablemodel.h \
+  qt/mintingview.h \
   qt/monitoreddatamapper.h \
   qt/notificator.h \
   qt/macnotificationhandler.h \
@@ -157,6 +164,10 @@ BITCOIN_QT_CPP = \
   qt/bitcoingui.cpp \
   qt/bitcoinunits.cpp \
   qt/clientmodel.cpp \
+  qt/kernelrecord.cpp \
+  qt/mintingfilterproxy.cpp \
+  qt/mintingtablemodel.cpp \
+  qt/mintingview.cpp \
   qt/csvmodelwriter.cpp \
   qt/guiutil.cpp \
   qt/monitoreddatamapper.cpp \

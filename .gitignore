@@ -20,3 +20,11 @@ src/config/faircoin-config.h.in
 src/config/faircoin-config.h.in~
 src/config/stamp-h1
 src/qt/.deps/
+*.o
+*.a
+src/qt/moc_*
+*.moc
+src/FairCoind
+src/qt/FairCoin-qt
+.dirstamp
+src/qt/forms/ui_*

@@ -18,6 +18,7 @@
 #include "transactiondescdialog.h"
 #include "addresstablemodel.h"
 #include "transactionview.h"
+#include "mintingview.h"
 #include "overviewpage.h"
 #include "bitcoinunits.h"
 #include "guiconstants.h"
@@ -110,6 +111,12 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     vbox->addWidget(transactionView);
     transactionsPage->setLayout(vbox);
 
+    mintingPage = new QWidget(this);
+    QVBoxLayout *vboxMinting = new QVBoxLayout();
+    mintingView = new MintingView(this);
+    vboxMinting->addWidget(mintingView);
+    mintingPage->setLayout(vboxMinting);
+
     addressBookPage = new AddressBookPage(AddressBookPage::ForEditing, AddressBookPage::SendingTab);
 
     receiveCoinsPage = new AddressBookPage(AddressBookPage::ForEditing, AddressBookPage::ReceivingTab);
@@ -121,6 +128,7 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     centralWidget = new QStackedWidget(this);
     centralWidget->addWidget(overviewPage);
     centralWidget->addWidget(transactionsPage);
+    centralWidget->addWidget(mintingPage);
     centralWidget->addWidget(addressBookPage);
     centralWidget->addWidget(receiveCoinsPage);
     centralWidget->addWidget(sendCoinsPage);
@@ -231,6 +239,12 @@ void BitcoinGUI::createActions()
     addressBookAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
     tabGroup->addAction(addressBookAction);
 
+    mintingAction = new QAction(QIcon(":/icons/history"), tr("&Minting"), this);
+    mintingAction->setToolTip(tr("Show your minting capacity"));
+    mintingAction->setCheckable(true);
+    mintingAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_6));
+    tabGroup->addAction(mintingAction);
+
     connect(overviewAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(overviewAction, SIGNAL(triggered()), this, SLOT(gotoOverviewPage()));
     connect(sendCoinsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
@@ -241,6 +255,8 @@ void BitcoinGUI::createActions()
     connect(historyAction, SIGNAL(triggered()), this, SLOT(gotoHistoryPage()));
     connect(addressBookAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(addressBookAction, SIGNAL(triggered()), this, SLOT(gotoAddressBookPage()));
+    connect(mintingAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
+    connect(mintingAction, SIGNAL(triggered()), this, SLOT(gotoMintingPage()));
 
     quitAction = new QAction(QIcon(":/icons/quit"), tr("E&xit"), this);
     quitAction->setToolTip(tr("Quit application"));
@@ -329,6 +345,7 @@ void BitcoinGUI::createToolBars()
     toolbar->addAction(receiveCoinsAction);
     toolbar->addAction(historyAction);
     toolbar->addAction(addressBookAction);
+    toolbar->addAction(mintingAction);
 
     QToolBar *toolbar2 = addToolBar(tr("Actions toolbar"));
     toolbar2->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
@@ -387,6 +404,7 @@ void BitcoinGUI::setWalletModel(WalletModel *walletModel)
 
         // Put transaction list in tabs
         transactionView->setModel(walletModel);
+        mintingView->setModel(walletModel);
 
         overviewPage->setModel(walletModel, this);
         addressBookPage->setModel(walletModel->getAddressTableModel());
@@ -713,6 +731,16 @@ void BitcoinGUI::gotoAddressBookPage()
     exportAction->setEnabled(true);
     disconnect(exportAction, SIGNAL(triggered()), 0, 0);
     connect(exportAction, SIGNAL(triggered()), addressBookPage, SLOT(exportClicked()));
+}
+
+void BitcoinGUI::gotoMintingPage()
+{
+    mintingAction->setChecked(true);
+    centralWidget->setCurrentWidget(mintingPage);
+
+    exportAction->setEnabled(true);
+    disconnect(exportAction, SIGNAL(triggered()), 0, 0);
+    connect(exportAction, SIGNAL(triggered()), mintingView, SLOT(exportClicked()));
 }
 
 void BitcoinGUI::gotoReceiveCoinsPage()
