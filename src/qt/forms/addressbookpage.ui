@@ -120,7 +120,7 @@
        </property>
        <property name="icon">
         <iconset resource="../bitcoin.qrc">
-         <normaloff>:/icons/transaction_0</normaloff>:/icons/transaction_0</iconset>
+         <normaloff>:/icons/verify</normaloff>:/icons/verify</iconset>
        </property>
       </widget>
      </item>

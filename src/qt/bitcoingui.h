@@ -83,11 +83,13 @@ private:
     QAction *mintingAction;
     QAction *signMessageAction;
     QAction *verifyMessageAction;
+    QAction *verifyMessageActionMenu;
     QAction *aboutAction;
     QAction *receiveCoinsAction;
     QAction *optionsAction;
     QAction *toggleHideAction;
     QAction *exportAction;
+    QAction *exportActionMenu;
     QAction *encryptWalletAction;
     QAction *unlockWalletAction;
     QAction *backupWalletAction;

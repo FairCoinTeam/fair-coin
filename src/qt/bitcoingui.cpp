@@ -239,7 +239,7 @@ void BitcoinGUI::createActions()
     addressBookAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
     tabGroup->addAction(addressBookAction);
 
-    mintingAction = new QAction(QIcon(":/icons/history"), tr("&Minting"), this);
+    mintingAction = new QAction(QIcon(":/icons/minting"), tr("&Minting"), this);
     mintingAction->setToolTip(tr("Show your minting capacity"));
     mintingAction->setCheckable(true);
     mintingAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_6));
@@ -282,10 +282,13 @@ void BitcoinGUI::createActions()
     changePassphraseAction = new QAction(QIcon(":/icons/key"), tr("&Change Passphrase..."), this);
     changePassphraseAction->setToolTip(tr("Change the passphrase used for wallet encryption"));
     signMessageAction = new QAction(QIcon(":/icons/edit"), tr("Sign &message..."), this);
-    verifyMessageAction = new QAction(QIcon(":/icons/transaction_0"), tr("&Verify message..."), this);
+    verifyMessageAction = new QAction(QIcon(":/icons/verify"), tr("&Verify message..."), this);
+    verifyMessageActionMenu = new QAction(QIcon(":/icons/verify_menu"), tr("&Verify message..."), this);
 
     exportAction = new QAction(QIcon(":/icons/export"), tr("&Export..."), this);
     exportAction->setToolTip(tr("Export the data in the current tab to a file"));
+    exportActionMenu = new QAction(QIcon(":/icons/export_menu"), tr("&Export..."), this);
+    exportActionMenu->setToolTip(tr("Export the data in the current tab to a file"));
     openRPCConsoleAction = new QAction(QIcon(":/icons/debugwindow"), tr("&Debug window"), this);
     openRPCConsoleAction->setToolTip(tr("Open debugging and diagnostic console"));
 
@@ -315,9 +318,9 @@ void BitcoinGUI::createMenuBar()
     // Configure the menus
     QMenu *file = appMenuBar->addMenu(tr("&File"));
     file->addAction(backupWalletAction);
-    file->addAction(exportAction);
+    file->addAction(exportActionMenu);
     file->addAction(signMessageAction);
-    file->addAction(verifyMessageAction);
+    file->addAction(verifyMessageActionMenu);
     file->addSeparator();
     file->addAction(quitAction);
 
@@ -710,7 +713,9 @@ void BitcoinGUI::gotoOverviewPage()
     centralWidget->setCurrentWidget(overviewPage);
 
     exportAction->setEnabled(false);
+    exportActionMenu->setEnabled(false);
     disconnect(exportAction, SIGNAL(triggered()), 0, 0);
+    disconnect(exportActionMenu, SIGNAL(triggered()), 0, 0);
 }
 
 void BitcoinGUI::gotoHistoryPage()
@@ -719,8 +724,11 @@ void BitcoinGUI::gotoHistoryPage()
     centralWidget->setCurrentWidget(transactionsPage);
 
     exportAction->setEnabled(true);
+    exportActionMenu->setEnabled(true);
     disconnect(exportAction, SIGNAL(triggered()), 0, 0);
     connect(exportAction, SIGNAL(triggered()), transactionView, SLOT(exportClicked()));
+    disconnect(exportActionMenu, SIGNAL(triggered()), 0, 0);
+    connect(exportActionMenu, SIGNAL(triggered()), transactionView, SLOT(exportClicked()));
 }
 
 void BitcoinGUI::gotoAddressBookPage()
@@ -731,6 +739,9 @@ void BitcoinGUI::gotoAddressBookPage()
     exportAction->setEnabled(true);
     disconnect(exportAction, SIGNAL(triggered()), 0, 0);
     connect(exportAction, SIGNAL(triggered()), addressBookPage, SLOT(exportClicked()));
+    exportActionMenu->setEnabled(true);
+    disconnect(exportActionMenu, SIGNAL(triggered()), 0, 0);
+    connect(exportActionMenu, SIGNAL(triggered()), addressBookPage, SLOT(exportClicked()));
 }
 
 void BitcoinGUI::gotoMintingPage()
@@ -741,6 +752,9 @@ void BitcoinGUI::gotoMintingPage()
     exportAction->setEnabled(true);
     disconnect(exportAction, SIGNAL(triggered()), 0, 0);
     connect(exportAction, SIGNAL(triggered()), mintingView, SLOT(exportClicked()));
+    exportActionMenu->setEnabled(true);
+    disconnect(exportActionMenu, SIGNAL(triggered()), 0, 0);
+    connect(exportActionMenu, SIGNAL(triggered()), mintingView, SLOT(exportClicked()));
 }
 
 void BitcoinGUI::gotoReceiveCoinsPage()
@@ -751,6 +765,9 @@ void BitcoinGUI::gotoReceiveCoinsPage()
     exportAction->setEnabled(true);
     disconnect(exportAction, SIGNAL(triggered()), 0, 0);
     connect(exportAction, SIGNAL(triggered()), receiveCoinsPage, SLOT(exportClicked()));
+    exportActionMenu->setEnabled(true);
+    disconnect(exportActionMenu, SIGNAL(triggered()), 0, 0);
+    connect(exportActionMenu, SIGNAL(triggered()), receiveCoinsPage, SLOT(exportClicked()));
 }
 
 void BitcoinGUI::gotoSendCoinsPage()
@@ -760,6 +777,8 @@ void BitcoinGUI::gotoSendCoinsPage()
 
     exportAction->setEnabled(false);
     disconnect(exportAction, SIGNAL(triggered()), 0, 0);
+    exportActionMenu->setEnabled(false);
+    disconnect(exportActionMenu, SIGNAL(triggered()), 0, 0);
 }
 
 void BitcoinGUI::gotoSignMessageTab(QString addr)
@@ -834,7 +853,7 @@ void BitcoinGUI::setEncryptionStatus(int status)
         break;
     case WalletModel::Unlocked:
         labelEncryptionIcon->show();
-        labelEncryptionIcon->setPixmap(QIcon(":/icons/lock_open").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
+        labelEncryptionIcon->setPixmap(QIcon(":/icons/golden_lock_open").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
         labelEncryptionIcon->setToolTip(fWalletUnlockMintOnly? tr("Wallet is <b>encrypted</b> and currently <b>unlocked for block minting only</b>") : tr("Wallet is <b>encrypted</b> and currently <b>unlocked</b>"));
         encryptWalletAction->setChecked(true);
         changePassphraseAction->setEnabled(true);
@@ -844,7 +863,7 @@ void BitcoinGUI::setEncryptionStatus(int status)
         break;
     case WalletModel::Locked:
         labelEncryptionIcon->show();
-        labelEncryptionIcon->setPixmap(QIcon(":/icons/lock_closed").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
+        labelEncryptionIcon->setPixmap(QIcon(":/icons/golden_lock_closed").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
         labelEncryptionIcon->setToolTip(tr("Wallet is <b>encrypted</b> and currently <b>locked</b>"));
         encryptWalletAction->setChecked(true);
         unlockWalletAction->setEnabled(true);
