@@ -28,3 +28,7 @@ src/FairCoind
 src/qt/FairCoin-qt
 .dirstamp
 src/qt/forms/ui_*
+src/test/.deps
+src/qt/qrc_bitcoin.cpp
+src/test/data/*.h
+src/test/test_faircoin

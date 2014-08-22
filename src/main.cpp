@@ -1157,7 +1157,7 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits, int algo)
 
     // Check proof of work matches claimed amount
     if (hash > bnTarget.getuint256())
-        return error("CheckProofOfWork() : hash doesn't match nBits");
+        return error("CheckProofOfWork() : hash %s doesn't match nBits %d", hash.GetHex().c_str(), nBits);
 
     return true;
 }
@@ -3599,6 +3599,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
     else
     {
         // Ignore unknown commands for extensibility
+    	printf("received unknown command: %s\n", strCommand.c_str());
     }
 
 
