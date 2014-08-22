@@ -55,17 +55,18 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     uint256 hash;
 
     // Simple block creation, nothing special yet:
-    BOOST_CHECK(pblock = CreateNewBlock(reservekey));
+
+    BOOST_CHECK(pblock = CreateNewBlock(pwalletMain, false, ALGO_SHA256D));
 
     // We can't make transactions until we have inputs
     // Therefore, load 100 blocks :)
     std::vector<CTransaction*>txFirst;
     for (unsigned int i = 0; i < sizeof(blockinfo)/sizeof(*blockinfo); ++i)
     {
-        pblock->nVersion = 1;
+        pblock->nVersion = 4;
         pblock->nTime = pindexBest->GetMedianTimePast()+1;
         pblock->vtx[0].vin[0].scriptSig = CScript();
-        pblock->vtx[0].vin[0].scriptSig.push_back(blockinfo[i].extranonce);
+        //pblock->vtx[0].vin[0].scriptSig.push_back(blockinfo[i].extranonce);
         pblock->vtx[0].vin[0].scriptSig.push_back(pindexBest->nHeight);
         pblock->vtx[0].vout[0].scriptPubKey = CScript();
         if (txFirst.size() < 2)
@@ -78,7 +79,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     delete pblock;
 
     // Just to make sure we can still make simple blocks
-    BOOST_CHECK(pblock = CreateNewBlock(reservekey));
+    BOOST_CHECK(pblock = CreateNewBlock(pwalletMain, false, ALGO_SHA256D));
 
     // block sigops > limit: 1000 CHECKMULTISIG + 1
     tx.vin.resize(1);
@@ -95,7 +96,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
         mempool.addUnchecked(hash, tx);
         tx.vin[0].prevout.hash = hash;
     }
-    BOOST_CHECK(pblock = CreateNewBlock(reservekey));
+    BOOST_CHECK(pblock = CreateNewBlock(pwalletMain, false, ALGO_SHA256D));
     delete pblock;
     mempool.clear();
 
@@ -115,14 +116,14 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
         mempool.addUnchecked(hash, tx);
         tx.vin[0].prevout.hash = hash;
     }
-    BOOST_CHECK(pblock = CreateNewBlock(reservekey));
+    BOOST_CHECK(pblock = CreateNewBlock(pwalletMain, false, ALGO_SHA256D));
     delete pblock;
     mempool.clear();
 
     // orphan in mempool
     hash = tx.GetHash();
     mempool.addUnchecked(hash, tx);
-    BOOST_CHECK(pblock = CreateNewBlock(reservekey));
+    BOOST_CHECK(pblock = CreateNewBlock(pwalletMain, false, ALGO_SHA256D));
     delete pblock;
     mempool.clear();
 
@@ -140,7 +141,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     tx.vout[0].nValue = 5900000000LL;
     hash = tx.GetHash();
     mempool.addUnchecked(hash, tx);
-    BOOST_CHECK(pblock = CreateNewBlock(reservekey));
+    BOOST_CHECK(pblock = CreateNewBlock(pwalletMain, false, ALGO_SHA256D));
     delete pblock;
     mempool.clear();
 
@@ -151,7 +152,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     tx.vout[0].nValue = 0;
     hash = tx.GetHash();
     mempool.addUnchecked(hash, tx);
-    BOOST_CHECK(pblock = CreateNewBlock(reservekey));
+    BOOST_CHECK(pblock = CreateNewBlock(pwalletMain, false, ALGO_SHA256D));
     delete pblock;
     mempool.clear();
 
@@ -169,7 +170,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     tx.vout[0].nValue -= 1000000;
     hash = tx.GetHash();
     mempool.addUnchecked(hash,tx);
-    BOOST_CHECK(pblock = CreateNewBlock(reservekey));
+    BOOST_CHECK(pblock = CreateNewBlock(pwalletMain, false, ALGO_SHA256D));
     delete pblock;
     mempool.clear();
 
@@ -183,17 +184,17 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     tx.vout[0].scriptPubKey = CScript() << OP_2;
     hash = tx.GetHash();
     mempool.addUnchecked(hash, tx);
-    BOOST_CHECK(pblock = CreateNewBlock(reservekey));
+    BOOST_CHECK(pblock = CreateNewBlock(pwalletMain, false, ALGO_SHA256D));
     delete pblock;
     mempool.clear();
 
     // subsidy changing
     int nHeight = pindexBest->nHeight;
     pindexBest->nHeight = 209999;
-    BOOST_CHECK(pblock = CreateNewBlock(reservekey));
+    BOOST_CHECK(pblock = CreateNewBlock(pwalletMain, false, ALGO_SHA256D));
     delete pblock;
     pindexBest->nHeight = 210000;
-    BOOST_CHECK(pblock = CreateNewBlock(reservekey));
+    BOOST_CHECK(pblock = CreateNewBlock(pwalletMain, false, ALGO_SHA256D));
     delete pblock;
     pindexBest->nHeight = nHeight;
 }
