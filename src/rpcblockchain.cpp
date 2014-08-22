@@ -142,7 +142,7 @@ static void createPairs4Algo(Object *obj, int algo, bool fAppendAlgoName=false)
     const CBlockIndex* lastPoW = GetLastBlockIndex4Algo(pindexBest, algo);
     unsigned int nextPoW = GetNextTargetRequired(pindexBest, false, algo);
 
-    std:string algoName = fAppendAlgoName ? ("-" + GetAlgoName(algo)) : "";
+    string algoName = fAppendAlgoName ? ("-" + GetAlgoName(algo)) : "";
 
     obj->push_back(Pair("proof-of-work" + algoName, GetDifficultyFromBits(lastPoW->nBits)));
     obj->push_back(Pair("proof-of-work" + algoName + "-next" + algoName, GetDifficultyFromBits(nextPoW)));
