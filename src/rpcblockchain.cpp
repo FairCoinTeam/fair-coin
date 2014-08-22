@@ -132,28 +132,42 @@ unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfS
 
 static const CBlockIndex* GetLastBlockIndex4Algo(const CBlockIndex* pindex, int algo)
 {
-    while (pindex && pindex->pprev && pindex->IsProofOfStake() && GetAlgo(pindex->nVersion) != algo)
+    while (pindex && pindex->pprev && (pindex->IsProofOfStake() || GetAlgo(pindex->nVersion) != algo))
         pindex = pindex->pprev;
     return pindex;
 }
 
+static void createPairs4Algo(Object *obj, int algo, bool fAppendAlgoName=false)
+{
+    const CBlockIndex* lastPoW = GetLastBlockIndex4Algo(pindexBest, algo);
+    unsigned int nextPoW = GetNextTargetRequired(pindexBest, false, algo);
+
+    std:string algoName = fAppendAlgoName ? ("-" + GetAlgoName(algo)) : "";
+
+    obj->push_back(Pair("proof-of-work" + algoName, GetDifficultyFromBits(lastPoW->nBits)));
+    obj->push_back(Pair("proof-of-work" + algoName + "-next" + algoName, GetDifficultyFromBits(nextPoW)));
+    obj->push_back(Pair("proof-of-work" + algoName + "-last-height", lastPoW->nHeight));
+}
+
 Value getdifficulty(const Array& params, bool fHelp)
 {
-    if (fHelp || params.size() != 0)
+    if (fHelp || params.size() > 1)
         throw runtime_error(
-            "getdifficulty\n"
-            "Returns the difficulty as a multiple of the minimum difficulty.");
-
-    const CBlockIndex* lastPoW = GetLastBlockIndex4Algo(pindexBest, miningAlgo);
-    unsigned int nextPoW = GetNextTargetRequired(pindexBest, false, miningAlgo);
-    const CBlockIndex* lastPoS = GetLastBlockIndex(pindexBest, true);
-    unsigned int nextPoS = GetNextTargetRequired(pindexBest, true, ALGO_SCRYPT);
+            "getdifficulty [all]\n"
+            "Returns the difficulty as a multiple of the minimum difficulty for the current mining algo or if parameter all is given all algos.");
 
     Object obj;
 
-    obj.push_back(Pair("proof-of-work",				GetDifficultyFromBits(lastPoW->nBits)));
-    obj.push_back(Pair("proof-of-work-next",		GetDifficultyFromBits(nextPoW)));
-    obj.push_back(Pair("proof-of-work-last-height", lastPoW->nHeight));
+    if (params.size() > 0 && params[0].get_str() == "all") {
+    	for (int i = 0 ; i < NUM_ALGOS ; i++) {
+    		createPairs4Algo(&obj, i, true);
+    	}
+    } else
+    	createPairs4Algo(&obj, miningAlgo);
+
+    const CBlockIndex* lastPoS = GetLastBlockIndex(pindexBest, true);
+    unsigned int nextPoS = GetNextTargetRequired(pindexBest, true, ALGO_SCRYPT);
+
     obj.push_back(Pair("proof-of-stake",			GetDifficultyFromBits(lastPoS->nBits)));
     obj.push_back(Pair("proof-of-stake-next",		GetDifficultyFromBits(nextPoS)));
     obj.push_back(Pair("proof-of-stake-last-height",lastPoS->nHeight));
