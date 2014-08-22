@@ -216,13 +216,24 @@ static FILE* fileout = NULL;
 
 inline int OutputDebugStringF(const char* pszFormat, ...)
 {
+    static bool fStartedNewLine = true;
     int ret = 0;
+    char sTime4Timezone[128] = {0};
+
+    if (fLogTimestamps && fStartedNewLine) {
+    	int64 nLocalTime = GetTime();
+    	struct tm *p=localtime((time_t *)&nLocalTime);
+    	ret += strftime(sTime4Timezone, 128, "%Y-%m-%d %H:%M:%S ", p);
+    }
+
     if (fPrintToConsole)
     {
         // print to console
-        va_list arg_ptr;
+    	if (*sTime4Timezone)
+    	    fputs(sTime4Timezone, stdout);
+    	va_list arg_ptr;
         va_start(arg_ptr, pszFormat);
-        ret = vprintf(pszFormat, arg_ptr);
+        ret += vprintf(pszFormat, arg_ptr);
         va_end(arg_ptr);
     }
     else if (!fPrintToDebugger)
@@ -237,8 +248,6 @@ inline int OutputDebugStringF(const char* pszFormat, ...)
         }
         if (fileout)
         {
-            static bool fStartedNewLine = true;
-
             // This routine may be called by global destructors during shutdown.
             // Since the order of destruction of static/global objects is undefined,
             // allocate mutexDebugLog on the heap the first time this routine
@@ -256,8 +265,8 @@ inline int OutputDebugStringF(const char* pszFormat, ...)
             }
 
             // Debug print useful for profiling
-            if (fLogTimestamps && fStartedNewLine)
-                fprintf(fileout, "%s ", DateTimeStrFormat("%x %H:%M:%S", GetTime()).c_str());
+            if (*sTime4Timezone)
+            	fputs(sTime4Timezone, fileout);
             if (pszFormat[strlen(pszFormat) - 1] == '\n')
                 fStartedNewLine = true;
             else
@@ -265,7 +274,7 @@ inline int OutputDebugStringF(const char* pszFormat, ...)
 
             va_list arg_ptr;
             va_start(arg_ptr, pszFormat);
-            ret = vfprintf(fileout, pszFormat, arg_ptr);
+            ret += vfprintf(fileout, pszFormat, arg_ptr);
             va_end(arg_ptr);
         }
     }
@@ -291,6 +300,7 @@ inline int OutputDebugStringF(const char* pszFormat, ...)
                 OutputDebugStringA(buffer.substr(line_start, line_end - line_start).c_str());
                 line_start = line_end + 1;
             }
+            ret = buffer.length();
             buffer.erase(0, line_start);
         }
     }
@@ -1333,6 +1343,28 @@ boost::filesystem::path GetSpecialFolderPath(int nFolder, bool fCreate)
     return fs::path("");
 }
 #endif
+
+boost::filesystem::path GetTempPath() {
+#if BOOST_FILESYSTEM_VERSION == 3
+    return boost::filesystem::temp_directory_path();
+#else
+    // TODO: remove when we don't support filesystem v2 anymore
+    boost::filesystem::path path;
+#ifdef WIN32
+    char pszPath[MAX_PATH] = "";
+
+    if (GetTempPathA(MAX_PATH, pszPath))
+        path = boost::filesystem::path(pszPath);
+#else
+    path = boost::filesystem::path("/tmp");
+#endif
+    if (path.empty() || !boost::filesystem::is_directory(path)) {
+        LogPrintf("GetTempPath(): failed to find temp path\n");
+        return boost::filesystem::path("");
+    }
+    return path;
+#endif
+}
 
 void runCommand(std::string strCommand)
 {
