@@ -4426,6 +4426,11 @@ static int nLimitProcessors = -1;
 
 void FairCoinMiner(CWallet *pwallet, bool fProofOfStake)
 {
+    if (fProofOfStake && GetBoolArg("-nominting", false)) {
+        printf("Not starting proof-of-stake minter as requested by configuration\n");
+        return;
+    }
+
     printf("CPUMiner started for proof-of-%s\n", fProofOfStake? "stake" : "work");
     SetThreadPriority(THREAD_PRIORITY_LOWEST);
 
