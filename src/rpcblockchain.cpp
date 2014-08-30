@@ -145,7 +145,7 @@ static void createPairs4Algo(Object *obj, int algo, bool fAppendAlgoName=false)
     string algoName = fAppendAlgoName ? ("-" + GetAlgoName(algo)) : "";
 
     obj->push_back(Pair("proof-of-work" + algoName, GetDifficultyFromBits(lastPoW->nBits)));
-    obj->push_back(Pair("proof-of-work" + algoName + "-next" + algoName, GetDifficultyFromBits(nextPoW)));
+    obj->push_back(Pair("proof-of-work" + algoName + "-next", GetDifficultyFromBits(nextPoW)));
     obj->push_back(Pair("proof-of-work" + algoName + "-last-height", lastPoW->nHeight));
 }
 
