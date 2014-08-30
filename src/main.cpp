@@ -3565,6 +3565,16 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
     }
 
 
+    else if (strCommand == "pong")
+    {
+        if (fDebugNet) {
+            uint64 nonce = 0;
+            vRecv >> nonce;
+            printf("received pong with nonce: %"PRI64d"\n", nonce);
+        }
+    }
+
+
     else if (strCommand == "alert")
     {
         CAlert alert;
@@ -3605,7 +3615,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
 
     // Update the last seen time for this node's address
     if (pfrom->fNetworkNode)
-        if (strCommand == "version" || strCommand == "addr" || strCommand == "inv" || strCommand == "getdata" || strCommand == "ping")
+        if (strCommand == "version" || strCommand == "addr" || strCommand == "inv" || strCommand == "getdata" || strCommand == "ping" || strCommand == "pong")
             AddressCurrentlyConnected(pfrom->addr);
 
 

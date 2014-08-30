@@ -1359,7 +1359,7 @@ boost::filesystem::path GetTempPath() {
     path = boost::filesystem::path("/tmp");
 #endif
     if (path.empty() || !boost::filesystem::is_directory(path)) {
-        LogPrintf("GetTempPath(): failed to find temp path\n");
+        printf("GetTempPath(): failed to find temp path\n");
         return boost::filesystem::path("");
     }
     return path;
