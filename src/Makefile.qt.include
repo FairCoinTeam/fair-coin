@@ -11,6 +11,7 @@ QT_FORMS_UI = \
   qt/forms/addressbookpage.ui \
   qt/forms/askpassphrasedialog.ui \
   qt/forms/optionsdialog.ui \
+  qt/forms/coincontroldialog.ui \
   qt/forms/editaddressdialog.ui \
   qt/forms/overviewpage.ui \
   qt/forms/qrcodedialog.ui \
@@ -41,6 +42,8 @@ QT_MOC_CPP = \
   qt/moc_mintingview.cpp \
   qt/moc_notificator.cpp \
   qt/moc_optionsdialog.cpp \
+  qt/moc_coincontroldialog.cpp \
+  qt/moc_coincontroltreewidget.cpp \
   qt/moc_optionsmodel.cpp \
   qt/moc_overviewpage.cpp \
   qt/moc_qvalidatedlineedit.cpp \
@@ -94,6 +97,8 @@ BITCOIN_QT_H = \
   qt/macnotificationhandler.h \
   qt/optionsdialog.h \
   qt/optionsmodel.h \
+  qt/coincontroldialog.h \
+  qt/coincontroltreewidget.h \
   qt/overviewpage.h \
   qt/qrcodedialog.h \
   qt/qtipcserver.h \
@@ -180,6 +185,8 @@ BITCOIN_QT_CPP = \
   qt/monitoreddatamapper.cpp \
   qt/notificator.cpp \
   qt/optionsdialog.cpp \
+  qt/coincontroldialog.cpp \
+  qt/coincontroltreewidget.cpp \
   qt/optionsmodel.cpp \
   qt/qvalidatedlineedit.cpp \
   qt/qvaluecombobox.cpp \
