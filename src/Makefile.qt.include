@@ -134,17 +134,22 @@ RES_ICONS = \
   qt/res/icons/editcopy.png \
   qt/res/icons/editpaste.png \
   qt/res/icons/export.png \
+  qt/res/icons/export_menu.png \
   qt/res/icons/filesave.png \
   qt/res/icons/history.png \
   qt/res/icons/key.png \
   qt/res/icons/lock_closed.png \
   qt/res/icons/lock_open.png \
+  qt/res/icons/golden_lock_closed.png \
+  qt/res/icons/golden_lock_open.png \
   qt/res/icons/overview.png \
   qt/res/icons/qrcode.png \
   qt/res/icons/quit.png \
   qt/res/icons/receive.png \
   qt/res/icons/remove.png \
   qt/res/icons/send.png \
+  qt/res/icons/send_button.png \
+  qt/res/icons/minting.png \
   qt/res/icons/synced.png \
   qt/res/icons/toolbar_faircoin.png \
   qt/res/icons/toolbar_testnet.png \
@@ -155,7 +160,9 @@ RES_ICONS = \
   qt/res/icons/tx_inout.png \
   qt/res/icons/tx_input.png \
   qt/res/icons/tx_output.png \
-  qt/res/icons/tx_mined.png
+  qt/res/icons/tx_mined.png \
+  qt/res/icons/verify.png \
+  qt/res/icons/verify_menu.png
 
 BITCOIN_QT_CPP = \
   qt/bitcoin.cpp \
