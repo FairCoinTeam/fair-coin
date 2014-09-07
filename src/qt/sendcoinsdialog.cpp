@@ -179,7 +179,7 @@ void SendCoinsDialog::on_sendButton_clicked()
         break;
     case WalletModel::InvalidAmount:
         QMessageBox::warning(this, tr("Send Coins"),
-            tr("The amount to pay must be at least 0.001 FAC"),
+            tr("The amount to pay must be at least 0.001 FAIR"),
             QMessageBox::Ok, QMessageBox::Ok);
         break;
     case WalletModel::AmountExceedsBalance:
