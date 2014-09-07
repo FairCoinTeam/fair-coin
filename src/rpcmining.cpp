@@ -11,6 +11,9 @@
 using namespace json_spirit;
 using namespace std;
 
+extern double GetDifficultyFromBits(unsigned int nBits);
+extern unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfStake, int algo);
+
 Value getgenerate(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() != 0)
@@ -68,11 +71,13 @@ Value getmininginfo(const Array& params, bool fHelp)
             "getmininginfo\n"
             "Returns an object containing mining-related information.");
 
+    unsigned int nBits = GetNextTargetRequired(pindexBest, false, miningAlgo);
+
     Object obj;
     obj.push_back(Pair("blocks",        (int)nBestHeight));
     obj.push_back(Pair("currentblocksize",(uint64_t)nLastBlockSize));
     obj.push_back(Pair("currentblocktx",(uint64_t)nLastBlockTx));
-    obj.push_back(Pair("difficulty",    (double)GetDifficulty()));
+    obj.push_back(Pair("difficulty",    (double)GetDifficultyFromBits(nBits)));
     obj.push_back(Pair("errors",        GetWarnings("statusbar")));
     obj.push_back(Pair("generate",      GetBoolArg("-gen")));
     obj.push_back(Pair("genproclimit",  (int)GetArg("-genproclimit", -1)));
