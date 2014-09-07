@@ -59,6 +59,11 @@ public:
  */
 class TransactionRecord
 {
+private:
+    /** Number of confirmation needed for transaction */
+    static const int nNumConfirmations = 6;
+    static const int nNumConfirmationsMinted = 25;
+
 public:
     enum Type
     {
@@ -71,9 +76,6 @@ public:
         SendToSelf,
         StakeMint
     };
-
-    /** Number of confirmation needed for transaction */
-    static const int NumConfirmations = 6;
 
     TransactionRecord():
             hash(), time(0), type(Other), address(""), debit(0), credit(0), idx(0)
@@ -125,6 +127,12 @@ public:
     /** Return whether a status update is needed.
      */
     bool statusUpdateNeeded();
+
+    /** Return the number of needed confirmation depending on transaction type
+     */
+    int GetNumberOfConfirmations() const {
+    	return (type == Generated || type == StakeMint) ? nNumConfirmationsMinted : nNumConfirmations;
+    }
 };
 
 #endif // TRANSACTIONRECORD_H
