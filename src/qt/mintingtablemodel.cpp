@@ -71,10 +71,10 @@ public:
             LOCK(wallet->cs_wallet);
             for(std::map<uint256, CWalletTx>::iterator it = wallet->mapWallet.begin(); it != wallet->mapWallet.end(); ++it)
             {
-                QList<KernelRecord> txList = KernelRecord::decomposeOutput(wallet, it->second);
-                for(QList<KernelRecord>::iterator i = txList.begin(); i != txList.end(); ++i) {
-                    if(!(*i).spent) {
-                        cachedWallet.append(*i);
+                std::vector<KernelRecord> txList = KernelRecord::decomposeOutput(wallet, it->second);
+                BOOST_FOREACH(KernelRecord& kr, txList) {
+                    if(!kr.spent) {
+                        cachedWallet.append(kr);
                     }
                 }
 
@@ -130,13 +130,13 @@ public:
                 if(inWallet && !inModel)
                 {
                     // Added -- insert at the right position
-                    QList<KernelRecord> toInsert =
+                    std::vector<KernelRecord> toInsert =
                             KernelRecord::decomposeOutput(wallet, mi->second);
-                    if(!toInsert.isEmpty()) /* only if something to insert */
+                    if(!toInsert.empty()) /* only if something to insert */
                     {
                         parent->beginInsertRows(QModelIndex(), lowerIndex, lowerIndex+toInsert.size()-1);
                         int insert_idx = lowerIndex;
-                        foreach(const KernelRecord &rec, toInsert)
+                        BOOST_FOREACH(const KernelRecord &rec, toInsert)
                         {
                             if(!rec.spent) {
                                 cachedWallet.insert(insert_idx, rec);
@@ -319,8 +319,8 @@ QVariant MintingTableModel::data(const QModelIndex &index, int role) const
         }
         break;
       case Qt::BackgroundColorRole:
-        int minAge = nStakeMinAge / 60 / 60 / 24;
-        int maxAge = nStakeMaxAge / 60 / 60 / 24;
+        int minAge = nStakeMinAge / 60 / 60 / 21;
+        int maxAge = nStakeMaxAge / 60 / 60 / 21;
         if(rec->getAge() < minAge)
         {
             return COLOR_MINT_YOUNG;

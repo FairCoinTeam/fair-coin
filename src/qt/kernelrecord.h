@@ -2,7 +2,6 @@
 #define KERNELRECORD_H
 
 #include "uint256.h"
-#include <QList>
 
 class CWallet;
 class CWalletTx;
@@ -29,7 +28,7 @@ public:
     }
 
     static bool showTransaction(const CWalletTx &wtx);
-    static QList<KernelRecord> decomposeOutput(const CWallet *wallet, const CWalletTx &wtx);
+    static std::vector<KernelRecord> decomposeOutput(const CWallet *wallet, const CWalletTx &wtx);
 
 
     uint256 hash;
@@ -42,7 +41,7 @@ public:
 
     std::string getTxID();
     int64 getAge() const;
-    double getProbToMintStake(double difficulty) const;
+    double getProbToMintStake(double difficulty, int timeOffset = 0) const;
     double getProbToMintWithinNMinutes(double difficulty, int minutes);
 protected:
     int prevMinutes;
