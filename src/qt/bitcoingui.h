@@ -82,6 +82,7 @@ private:
     QAction *addressBookAction;
     QAction *mintingAction;
     QAction *signMessageAction;
+    QAction *signMessageActionMenu;
     QAction *verifyMessageAction;
     QAction *verifyMessageActionMenu;
     QAction *aboutAction;
@@ -103,7 +104,8 @@ private:
     MintingView *mintingView;
     RPCConsole *rpcConsole;
 
-    QMovie *syncIconMovie;
+    int prevBlocks;
+    int spinnerFrame;
 
     /** Create the main UI actions. */
     void createActions();
