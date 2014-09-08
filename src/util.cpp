@@ -226,6 +226,11 @@ inline int OutputDebugStringF(const char* pszFormat, ...)
     	ret += strftime(sTime4Timezone, 128, "%Y-%m-%d %H:%M:%S ", p);
     }
 
+    if (pszFormat[strlen(pszFormat) - 1] == '\n')
+        fStartedNewLine = true;
+    else
+        fStartedNewLine = false;
+
     if (fPrintToConsole)
     {
         // print to console
@@ -267,10 +272,6 @@ inline int OutputDebugStringF(const char* pszFormat, ...)
             // Debug print useful for profiling
             if (*sTime4Timezone)
             	fputs(sTime4Timezone, fileout);
-            if (pszFormat[strlen(pszFormat) - 1] == '\n')
-                fStartedNewLine = true;
-            else
-                fStartedNewLine = false;
 
             va_list arg_ptr;
             va_start(arg_ptr, pszFormat);

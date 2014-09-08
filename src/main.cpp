@@ -483,7 +483,7 @@ bool CTransaction::CheckTransaction() const
 
         // ppcoin: enforce minimum output amount
         if ((!txout.IsEmpty()) && txout.nValue < MIN_TXOUT_AMOUNT) {
-            printf("minamount: %s      nValue: %s", FormatMoney(MIN_TXOUT_AMOUNT).c_str(), FormatMoney(txout.nValue).c_str());
+            printf("minamount: %s      nValue: %s\n", FormatMoney(MIN_TXOUT_AMOUNT).c_str(), FormatMoney(txout.nValue).c_str());
             return DoS(100, error("CTransaction::CheckTransaction() : txout.nValue below minimum"));
         }
 
