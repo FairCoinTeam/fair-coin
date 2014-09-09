@@ -1,9 +1,10 @@
-Building Bitcoin
+Building the latest experimental FairCoin release:
 
-See doc/readme-qt.rst for instructions on building Bitcoin QT,
-the intended-for-end-users, nice-graphical-interface, reference
-implementation of Bitcoin.
+git clone https://github.com/FairCoinTeam/fair-coin.git
+cd fair-coin
+./autogen.sh  
+./configure --prefix=/usr --disable-maintainer-mode --with-incompatible-bdb --disable-tests  
+make
 
-See doc/build-*.txt for instructions on building bitcoind,
-the intended-for-services, no-graphical-interface, reference
-implementation of Bitcoin.
+strip src/qt/FairCoin-qt
+strip src/FairCoind
