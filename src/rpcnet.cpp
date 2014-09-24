@@ -135,3 +135,26 @@ Value sendalert(const Array& params, bool fHelp)
         result.push_back(Pair("nCancel", alert.nCancel));
     return result;
 }
+
+Value setcheckpointkey(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() > 1)
+        throw runtime_error(
+            "setcheckpointkey <checkpointkey>\n"
+            "<checkpointkey> is hex string of checkpoint master private key\n"
+            "Returns OK or ERROR");
+
+    Object result;
+    bool fOk = true;
+
+    if (params.size() == 0) {
+    	// no parameter clears the master key
+    	CSyncCheckpoint::strMasterPrivKey = "";
+    } else {
+    	fOk = Checkpoints::SetCheckpointPrivKey(params[0].get_str());
+    }
+
+    result.push_back(Pair("result", fOk ? "OK" : "ERROR"));
+
+    return result;
+}
