@@ -5,7 +5,8 @@
 
 #include "alert.h"
 #include "checkpoints.h"
-#include "dbx.h"
+#include "db.h"
+#include "txdb.h"
 #include "net.h"
 #include "init.h"
 #include "ui_interface.h"
@@ -1556,7 +1557,7 @@ bool CBlock::DisconnectBlock(CTxDB& txdb, CBlockIndex* pindex)
 bool CBlock::ConnectBlock(CTxDB& txdb, CBlockIndex* pindex, bool fJustCheck)
 {
     // Check it again in case a previous version let a bad block in
-    if (!CheckBlock(!fJustCheck, !fJustCheck))
+    if (!CheckBlock(!fJustCheck, !fJustCheck, false))
         return false;
 
     // Do not allow blocks that contain transactions which 'overwrite' older transactions,
@@ -2061,7 +2062,7 @@ bool CBlock::AddToBlockIndex(unsigned int nFile, unsigned int nBlockPos)
     return true;
 }
 
-bool CBlock::CheckBlock(bool fCheckPOW, bool fCheckMerkleRoot) const
+bool CBlock::CheckBlock(bool fCheckPOW, bool fCheckMerkleRoot, bool fCheckSig) const
 {
     // These are checks that are independent of context
     // that can be verified before saving an orphan block.
@@ -2095,13 +2096,13 @@ bool CBlock::CheckBlock(bool fCheckPOW, bool fCheckMerkleRoot) const
         if (vtx[i].IsCoinStake())
             return DoS(100, error("CheckBlock() : coinstake in wrong position"));
 
-    // ppcoin: coinbase output should be empty if proof-of-stake block
-    if (IsProofOfStake() && (vtx[0].vout.size() != 1 || !vtx[0].vout[0].IsEmpty()))
-        return error("CheckBlock() : coinbase output not empty for proof-of-stake block");
-
     // Check coinbase timestamp
     if (GetBlockTime() > (int64)vtx[0].nTime + nMaxClockDrift)
         return DoS(50, error("CheckBlock() : coinbase timestamp is too early"));
+
+    // ppcoin: coinbase output should be empty if proof-of-stake block
+    if (IsProofOfStake() && (vtx[0].vout.size() != 1 || !vtx[0].vout[0].IsEmpty()))
+        return error("CheckBlock() : coinbase output not empty for proof-of-stake block");
 
     // Check coinstake timestamp
     if (IsProofOfStake() && !CheckCoinStakeTimestamp(GetBlockTime(), (int64)vtx[1].nTime))
@@ -2110,8 +2111,8 @@ bool CBlock::CheckBlock(bool fCheckPOW, bool fCheckMerkleRoot) const
     // Check coinbase reward (PoW)
     if (IsProofOfWork() && vtx[0].GetValueOut() > GetProofOfWorkReward(pindexPrev->nHeight + 1) - vtx[0].GetMinFee() + MIN_TX_FEE)
         return DoS(50, error("CheckBlock() : coinbase reward exceeded %s > %s",
-				   FormatMoney(vtx[0].GetValueOut()).c_str(),
-		           FormatMoney(GetProofOfWorkReward(pindexPrev->nHeight + 1)).c_str()));
+                FormatMoney(vtx[0].GetValueOut()).c_str(),
+                FormatMoney(GetProofOfWorkReward(pindexPrev->nHeight + 1)).c_str()));
 
     // Check transactions
     BOOST_FOREACH(const CTransaction& tx, vtx)
@@ -2147,7 +2148,7 @@ bool CBlock::CheckBlock(bool fCheckPOW, bool fCheckMerkleRoot) const
         return DoS(100, error("CheckBlock() : hashMerkleRoot mismatch"));
 
     // ppcoin: check block signature
-    if (!CheckBlockSignature())
+    if (fCheckSig && !CheckBlockSignature())
         return DoS(100, error("CheckBlock() : bad block signature"));
 
     return true;
@@ -4444,7 +4445,7 @@ void FairCoinMiner(CWallet *pwallet, bool fProofOfStake)
             return;
         while (vNodes.empty() || IsInitialBlockDownload())
         {
-            Sleep(1000);
+            MilliSleep(1000);
             if (fShutdown)
                 return;
             if ((!fGenerateBitcoins) && !fProofOfStake)
@@ -4454,7 +4455,7 @@ void FairCoinMiner(CWallet *pwallet, bool fProofOfStake)
         while (pwallet->IsLocked())
         {
             strMintWarning = strMintMessage;
-            Sleep(1000);
+            MilliSleep(1000);
             if (fShutdown)
                 return;
         }
@@ -4487,7 +4488,7 @@ void FairCoinMiner(CWallet *pwallet, bool fProofOfStake)
                 CheckWork(pblock.get(), *pwalletMain, reservekey);
                 SetThreadPriority(THREAD_PRIORITY_LOWEST);
             }
-            Sleep(500);
+            MilliSleep(500);
             continue;
         }
 
@@ -4643,7 +4644,7 @@ void GenerateBitcoins(bool fGenerate, CWallet* pwallet)
         {
             if (!NewThread(ThreadFairCoinMiner, pwallet))
                 printf("Error: NewThread(ThreadFairCoinMiner) failed\n");
-            Sleep(10);
+            MilliSleep(10);
         }
     }
 }

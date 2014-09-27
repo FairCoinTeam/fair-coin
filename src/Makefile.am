@@ -67,7 +67,8 @@ BITCOIN_CORE_H = \
   sph_groestl.h \
   sph_types.h \
   hashgroestl.h \
-  dbx.h \
+  db.h \
+  txdb-leveldb.h \
   init.h \
   irc.h \
   kernel.h \
@@ -132,6 +133,7 @@ libbitcoin_server_a_SOURCES = \
 libbitcoin_wallet_a_CPPFLAGS = $(BITCOIN_INCLUDES)
 libbitcoin_wallet_a_SOURCES = \
   db.cpp \
+  txdb-leveldb.cpp \
   crypter.cpp \
   rpcdump.cpp \
   rpcwallet.cpp \

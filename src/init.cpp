@@ -5,11 +5,11 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #include "config/faircoin-config.h"
 
-#include "dbx.h"
 #include "walletdb.h"
 #include "bitcoinrpc.h"
 #include "net.h"
 #include "init.h"
+#include "txdb.h"
 #include "util.h"
 #include "ui_interface.h"
 #include "checkpoints.h"
@@ -90,7 +90,7 @@ void Shutdown(void* parg)
         UnregisterWallet(pwalletMain);
         delete pwalletMain;
         NewThread(ExitTimeout, NULL);
-        Sleep(50);
+        MilliSleep(50);
         printf("FairCoin exited\n\n");
         fExit = true;
 		if (fHeadless)
@@ -100,8 +100,8 @@ void Shutdown(void* parg)
     else
     {
         while (!fExit)
-            Sleep(500);
-        Sleep(100);
+            MilliSleep(500);
+        MilliSleep(100);
         ExitThread(0);
     }
 }
@@ -217,6 +217,7 @@ std::string HelpMessage()
         "  -gen                   " + _("Generate coins") + "\n" +
         "  -gen=0                 " + _("Don't generate coins") + "\n" +
         "  -datadir=<dir>         " + _("Specify data directory") + "\n" +
+        "  -wallet=<dir>          " + _("Specify wallet file (within data directory)") + "\n" +
         "  -dbcache=<n>           " + _("Set database cache size in megabytes (default: 25)") + "\n" +
         "  -dblogsize=<n>         " + _("Set database disk log size in megabytes (default: 100)") + "\n" +
         "  -timeout=<n>           " + _("Specify connection timeout in milliseconds (default: 5000)") + "\n" +
@@ -248,7 +249,6 @@ std::string HelpMessage()
         "  -upnp                  " + _("Use UPnP to map the listening port (default: 0)") + "\n" +
 #endif
 #endif
-        "  -detachdb              " + _("Detach block and address databases. Increases shutdown time (default: 0)") + "\n" +
         "  -paytxfee=<amt>        " + _("Fee per KB to add to transactions you send") + "\n" +
 		(!fHeadless ?
         ("  -server                "+ _("Accept command line and JSON-RPC commands") + "\n") : "") +
@@ -405,8 +405,6 @@ bool AppInit2()
     else
         fDebugNet = GetBoolArg("-debugnet");
 
-    bitdb.SetDetach(GetBoolArg("-detachdb", false));
-
 #if !defined(WIN32)
     fDaemon = GetBoolArg("-daemon") && fHeadless;
 #else
@@ -450,6 +448,11 @@ bool AppInit2()
     // ********************************************************* Step 4: application initialization: dir lock, daemonize, pidfile, debug log
 
     std::string strDataDir = GetDataDir().string();
+    std::string strWalletFileName = GetArg("-wallet", "wallet.dat");
+
+    // strWalletFileName must be a plain filename without a directory
+    if (strWalletFileName != boost::filesystem::basename(strWalletFileName) + boost::filesystem::extension(strWalletFileName))
+        return InitError(strprintf(_("Wallet %s resides outside data directory %s."), strWalletFileName.c_str(), strDataDir.c_str()));
 
     // Make sure only a single Bitcoin process is using the data directory.
     boost::filesystem::path pathLockFile = GetDataDir() / ".lock";
@@ -518,13 +521,13 @@ bool AppInit2()
     if (GetBoolArg("-salvagewallet"))
     {
         // Recover readable keypairs:
-        if (!CWalletDB::Recover(bitdb, "wallet.dat", true))
+        if (!CWalletDB::Recover(bitdb, strWalletFileName, true))
             return false;
     }
 
-    if (filesystem::exists(GetDataDir() / "wallet.dat"))
+    if (filesystem::exists(GetDataDir() / strWalletFileName))
     {
-        CDBEnv::VerifyResult r = bitdb.Verify("wallet.dat", CWalletDB::Recover);
+        CDBEnv::VerifyResult r = bitdb.Verify(strWalletFileName, CWalletDB::Recover);
         if (r == CDBEnv::RECOVER_OK)
         {
             string msg = strprintf(_("Warning: wallet.dat corrupt, data salvaged!"
@@ -719,7 +722,7 @@ bool AppInit2()
     printf("Loading wallet...\n");
     nStart = GetTimeMillis();
     bool fFirstRun = true;
-    pwalletMain = new CWallet("wallet.dat");
+    pwalletMain = new CWallet(strWalletFileName);
     DBErrors nLoadWalletRet = pwalletMain->LoadWallet(fFirstRun);
     if (nLoadWalletRet != DB_LOAD_OK)
     {
@@ -782,7 +785,7 @@ bool AppInit2()
         pindexRescan = pindexGenesisBlock;
     else
     {
-        CWalletDB walletdb("wallet.dat");
+        CWalletDB walletdb(strWalletFileName);
         CBlockLocator locator;
         if (walletdb.ReadBestBlock(locator))
             pindexRescan = locator.GetBlockIndex();
@@ -873,7 +876,7 @@ bool AppInit2()
 		// Loop until process is exit()ed from shutdown() function,
 		// called from ThreadRPCServer thread when a "stop" command is received.
 		while (1)
-		    Sleep(5000);
+		    MilliSleep(5000);
 	}
 
     return true;
