@@ -403,6 +403,10 @@ bool CTxDB::LoadBlockIndex()
     {
         CBlockIndex* pindex = item.second;
         pindex->bnChainTrust = (pindex->pprev ? pindex->pprev->bnChainTrust : 0) + pindex->GetBlockTrust();
+        // ppcoin: calculate stake modifier checksum
+        pindex->nStakeModifierChecksum = GetStakeModifierChecksum(pindex);
+        if (!CheckStakeModifierCheckpoints(pindex->nHeight, pindex->nStakeModifierChecksum))
+            return error("CTxDB::LoadBlockIndex() : Failed stake modifier checkpoint height=%d, modifier=0x%016"PRI64x, pindex->nHeight, pindex->nStakeModifier);
     }
 
     // Load hashBestChain pointer to end of best chain
@@ -417,12 +421,11 @@ bool CTxDB::LoadBlockIndex()
     pindexBest = mapBlockIndex[hashBestChain];
     nBestHeight = pindexBest->nHeight;
     bnBestChainTrust = pindexBest->bnChainTrust;
-
     printf("LoadBlockIndex(): hashBestChain=%s  height=%d  trust=%s  date=%s\n",
-      hashBestChain.ToString().c_str(), nBestHeight, CBigNum(bnBestChainTrust).ToString().c_str(),
+      hashBestChain.ToString().substr(0,20).c_str(), nBestHeight, bnBestChainTrust.ToString().c_str(),
       DateTimeStrFormat("%x %H:%M:%S", pindexBest->GetBlockTime()).c_str());
 
-    // NovaCoin: load hashSyncCheckpoint
+    // ppcoin: load hashSyncCheckpoint
     if (!ReadSyncCheckpoint(Checkpoints::hashSyncCheckpoint))
         return error("CTxDB::LoadBlockIndex() : hashSyncCheckpoint not loaded");
     printf("LoadBlockIndex(): synchronized checkpoint %s\n", Checkpoints::hashSyncCheckpoint.ToString().c_str());
@@ -431,6 +434,7 @@ bool CTxDB::LoadBlockIndex()
     ReadBestInvalidTrust(bnBestInvalidTrust);
 
     // Verify blocks in the best chain
+    int lastHardenedCheckpoint = Checkpoints::GetTotalBlocksEstimate();
     int nCheckLevel = GetArg("-checklevel", 1);
     int nCheckDepth = GetArg( "-checkblocks", 2500);
     if (nCheckDepth == 0)
@@ -455,6 +459,11 @@ bool CTxDB::LoadBlockIndex()
             printf("LoadBlockIndex() : *** found bad block at %d, hash=%s\n", pindex->nHeight, pindex->GetBlockHash().ToString().c_str());
             pindexFork = pindex->pprev;
         }
+        if (pindex->nHeight <= lastHardenedCheckpoint && !Checkpoints::CheckHardened(pindex->nHeight, pindex->GetBlockHash())) {
+            printf("LoadBlockIndex() : *** found bad block(fails hardened checkpoint test) at %d, hash=%s\n", pindex->nHeight, pindex->GetBlockHash().ToString().c_str());
+            Checkpoints::SetHackReload(true);
+        }
+
         // check level 2: verify transaction index validity
         if (nCheckLevel>1)
         {
