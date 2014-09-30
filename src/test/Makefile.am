@@ -35,6 +35,7 @@ test_faircoin_SOURCES = \
   base58_tests.cpp \
   base64_tests.cpp \
   bignum_tests.cpp \
+  bloom_tests.cpp \
   Checkpoints_tests.cpp \
   DoS_tests.cpp \
   getarg_tests.cpp \
