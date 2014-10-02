@@ -3507,6 +3507,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
             }
         }
     }
+
     else if (strCommand == "checkpoint")
     {
         CSyncCheckpoint checkpoint;
@@ -3585,7 +3586,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
         if (tx.AcceptToMemoryPool(txdb, true, &fMissingInputs))
         {
             SyncWithWallets(tx, NULL, true);
-            RelayMessage(inv, vMsg);
+            RelayTransaction(tx, inv.hash, vMsg);
             mapAlreadyAskedFor.erase(inv);
             vWorkQueue.push_back(inv.hash);
             vEraseQueue.push_back(inv.hash);
@@ -3608,7 +3609,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
                     {
                         printf("   accepted orphan tx %s\n", inv.hash.ToString().substr(0,10).c_str());
                         SyncWithWallets(tx, NULL, true);
-                        RelayMessage(inv, vMsg);
+                        RelayTransaction(tx, inv.hash, vMsg);
                         mapAlreadyAskedFor.erase(inv);
                         vWorkQueue.push_back(inv.hash);
                         vEraseQueue.push_back(inv.hash);
@@ -3787,6 +3788,16 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
                 pfrom->Misbehaving(10);
             }
         }
+    }
+
+    else if (!fBloomFilters &&
+             (strCommand == "filterload" ||
+              strCommand == "filteradd" ||
+              strCommand == "filterclear"))
+    {
+        pfrom->CloseSocketDisconnect();
+        return error("peer %s attempted to set a bloom filter even though we do not advertise that service",
+                     pfrom->addr.ToString().c_str());
     }
 
     else if (strCommand == "filterload")
