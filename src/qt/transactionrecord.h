@@ -131,7 +131,7 @@ public:
     /** Return the number of needed confirmation depending on transaction type
      */
     int GetNumberOfConfirmations() const {
-    	return (type == Generated || type == StakeMint) ? nNumConfirmationsMinted : nNumConfirmations;
+        return (type == Generated || type == StakeMint) ? nNumConfirmationsMinted : nNumConfirmations;
     }
 };
 

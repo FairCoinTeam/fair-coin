@@ -883,14 +883,15 @@ void CWalletTx::RelayWalletTransaction(CTxDB& txdb)
     {
         if (!(tx.IsCoinBase() || tx.IsCoinStake()))
         {
-            if (tx.GetDepthInMainChain() == 0)
+            uint256 hash = tx.GetHash();
+            if (!txdb.ContainsTx(hash))
                 RelayTransaction((CTransaction)tx, tx.GetHash());
         }
     }
     if (!(IsCoinBase() || IsCoinStake()))
     {
         uint256 hash = GetHash();
-        if (!GetDepthInMainChain() == 0)
+        if (!txdb.ContainsTx(hash))
         {
             printf("Relaying wtx %s\n", hash.ToString().substr(0,10).c_str());
             RelayTransaction((CTransaction)*this, hash);
@@ -920,6 +921,7 @@ void CWallet::ResendWalletTransactions()
     static int64 nLastTime;
     if (nTimeBestReceived < nLastTime)
         return;
+
     nLastTime = GetTime();
 
     // Rebroadcast any of our txes that aren't in a block yet
@@ -1702,7 +1704,7 @@ DBErrors CWallet::LoadWallet(bool& fFirstRunRet)
         return nLoadWalletRet;
     fFirstRunRet = !vchDefaultKey.IsValid();
 
-    //NewThread(ThreadFlushWalletDB, &strWalletFile);
+    NewThread(ThreadFlushWalletDB, &strWalletFile);
     return DB_LOAD_OK;
 }
 

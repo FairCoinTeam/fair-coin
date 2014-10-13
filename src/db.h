@@ -26,7 +26,7 @@ class CWallet;
 
 extern unsigned int nWalletDBUpdated;
 
-void ThreadFlushWalletDB(const std::string& strWalletFile);
+void ThreadFlushWalletDB(void* parg);
 bool BackupWallet(const CWallet& wallet, const std::string& strDest);
 
 
