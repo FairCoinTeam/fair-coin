@@ -17,7 +17,7 @@ remotes:
   "dir": "fair-coin"
 files:
 - "osx-native-depends-r2.tar.gz"
-- "osx-depends-r2.tar.gz"
+- "osx-depends-r3.tar.gz"
 - "osx-depends-qt-5.2.1-r2.tar.gz"
 
 script: |
