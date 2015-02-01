@@ -16,7 +16,7 @@ files:
 - "boost_1_55_0.tar.bz2"
 - "db-4.8.30.NC.tar.gz"
 - "miniupnpc-1.9.tar.gz"
-- "openssl-1.0.1h.tar.gz"
+- "openssl-1.0.1l.tar.gz"
 - "protobuf-2.5.0.tar.bz2"
 - "qrencode-3.4.3.tar.bz2"
 - "MacOSX10.6.pkg"
@@ -29,7 +29,7 @@ script: |
   export TAR_OPTIONS="-m --mtime="$REFERENCE_DATE\\\ $REFERENCE_TIME""
 
   cd osx-cross-depends
-  tar xf /home/ubuntu/build/osx-native-depends-r2.tar.gz
+  tar xf /home/ubuntu/build/osx-native-depends-r3.tar.gz
   export PATH=`pwd`/native-prefix/bin:$PATH
 
   make $MAKEOPTS -f libbdb.mk
