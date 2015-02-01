@@ -10,13 +10,13 @@ QT_TRANSLATE_NOOP("bitcoin-core", ""
 "%s, you must set a rpcpassword in the configuration file:\n"
 " %s\n"
 "It is recommended you use the following random password:\n"
-"rpcuser=bitcoinrpc\n"
+"rpcuser=faircoinrpc\n"
 "rpcpassword=%s\n"
 "(you do not need to remember this password)\n"
 "If the file does not exist, create it with owner-readable-only file "
 "permissions.\n"),
 QT_TRANSLATE_NOOP("bitcoin-core", ""
-"Acceptable ciphers (default: TLSv1+HIGH:!SSLv2:!aNULL:!eNULL:!AH:!3DES:"
+"Acceptable ciphers (default: TLSv1+HIGH:!SSLv2:!SSLv3:!aNULL:!eNULL:!AH:!3DES:"
 "@STRENGTH)"),
 QT_TRANSLATE_NOOP("bitcoin-core", ""
 "An error occurred while setting up the RPC port %u for listening on IPv4: %s"),
