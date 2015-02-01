@@ -63,6 +63,7 @@ BITCOIN_CORE_H = \
   hashgroestl.h \
   db.h \
   hash.h \
+  txdb.h \
   txdb-leveldb.h \
   init.h \
   irc.h \
