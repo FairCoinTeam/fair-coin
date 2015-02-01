@@ -1041,7 +1041,7 @@ boost::filesystem::path GetDefaultDataDir()
     // Unix: ~/.FairCoin
 #ifdef WIN32
     // Windows
-    return GetSpecialFolderPath(CSIDL_APPDATA) / "FairCoin";
+    return GetSpecialFolderPath(CSIDL_APPDATA) / "FairCoin-beta";
 #else
     fs::path pathRet;
     char* pszHome = getenv("HOME");
@@ -1053,10 +1053,10 @@ boost::filesystem::path GetDefaultDataDir()
     // Mac
     pathRet /= "Library/Application Support";
     fs::create_directory(pathRet);
-    return pathRet / "FairCoin";
+    return pathRet / "FairCoin-beta";
 #else
     // Unix
-    return pathRet / ".FairCoin";
+    return pathRet / ".FairCoin-beta";
 #endif
 #endif
 }
@@ -1137,7 +1137,7 @@ void ReadConfigFile(map<string, string>& mapSettingsRet,
 
 boost::filesystem::path GetPidFile()
 {
-    boost::filesystem::path pathPidFile(GetArg("-pid", "FairCoind.pid"));
+    boost::filesystem::path pathPidFile(GetArg("-pid", "FairCoind-beta.pid"));
     if (!pathPidFile.is_complete()) pathPidFile = GetDataDir() / pathPidFile;
     return pathPidFile;
 }
