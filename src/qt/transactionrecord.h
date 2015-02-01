@@ -53,16 +53,14 @@ public:
     /** Current number of blocks (to know whether cached status is still valid) */
     int cur_num_blocks;
 };
+static const int nNumConfirmations = 6;
+static const int nNumConfirmationsMinted = 25;
 
 /** UI model for a transaction. A core transaction can be represented by multiple UI transactions if it has
     multiple outputs.
  */
 class TransactionRecord
 {
-private:
-    /** Number of confirmation needed for transaction */
-    static const int nNumConfirmations = 6;
-    static const int nNumConfirmationsMinted = 25;
 
 public:
     enum Type

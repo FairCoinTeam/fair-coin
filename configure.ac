@@ -1,14 +1,14 @@
 dnl require autoconf 2.60 (AS_ECHO/AS_ECHO_N)
 AC_PREREQ([2.60])
 define(_CLIENT_VERSION_MAJOR, 1)
-define(_CLIENT_VERSION_MINOR, 2)
+define(_CLIENT_VERSION_MINOR, 5)
 define(_CLIENT_VERSION_REVISION, 0)
 define(_CLIENT_VERSION_BUILD, 0)
 define(_CLIENT_VERSION_IS_RELEASE, true)
-define(_COPYRIGHT_YEAR, 2014)
+define(_COPYRIGHT_YEAR, 2015)
 AC_INIT([FairCoin Core],[_CLIENT_VERSION_MAJOR._CLIENT_VERSION_MINOR._CLIENT_VERSION_REVISION],[support@fair-coin.org],[faircoin],[http://fair-coin.org/])
-AC_CONFIG_AUX_DIR([src/build-aux])
-AC_CONFIG_MACRO_DIR([src/m4])
+AC_CONFIG_AUX_DIR([build-aux])
+AC_CONFIG_MACRO_DIR([build-aux/m4])
 AC_CANONICAL_HOST
 AH_TOP([#ifndef FAIRCOIN_CONFIG_H])
 AH_TOP([#define FAIRCOIN_CONFIG_H])
@@ -106,18 +106,6 @@ AC_ARG_ENABLE([lcov],
   [enable lcov testing (default is no)])],
   [use_lcov=yes],
   [use_lcov=no])
-
-AC_ARG_ENABLE([sse2],
-  [AS_HELP_STRING([--enable-sse2],
-  [enable SSE/SSE2 optimizations (default is yes)])],
-  [have_sse2=$enableval],
-  [have_sse2=yes])
-AC_MSG_CHECKING([whether enable SSE/SSE2 optimizations])
-if test "$have_sse2" = "yes"; then
-    AC_DEFINE([HAVE_SSE2],1,[Define to enable SSE/SSE2 optimizations.])
-fi
-AC_MSG_RESULT($have_sse2)
-AM_CONDITIONAL([HAVE_SSE2],[test x"$have_sse2" = x"yes"])
 
 AC_ARG_ENABLE([glibc-back-compat],
   [AS_HELP_STRING([--enable-glibc-back-compat],

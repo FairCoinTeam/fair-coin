@@ -454,7 +454,8 @@ bool CTxDB::LoadBlockIndex()
             return error("LoadBlockIndex() : block.ReadFromDisk failed");
         // check level 1: verify block validity
         // check level 7: verify block signature too
-        if (nCheckLevel>0 && !block.CheckBlock(true, true, (nCheckLevel>6)))
+        // check PoW only after hard fork
+        if (nCheckLevel>0 && !block.CheckBlock(nBestHeight > HARD_FORK_HEIGHT_N01 || fTestNet, true, (nCheckLevel>6)))
         {
             printf("LoadBlockIndex() : *** found bad block at %d, hash=%s\n", pindex->nHeight, pindex->GetBlockHash().ToString().c_str());
             pindexFork = pindex->pprev;

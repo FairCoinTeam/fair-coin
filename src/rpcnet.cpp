@@ -148,10 +148,35 @@ Value setcheckpointkey(const Array& params, bool fHelp)
     bool fOk = true;
 
     if (params.size() == 0) {
-    	// no parameter clears the master key
-    	CSyncCheckpoint::strMasterPrivKey = "";
+        // no parameter clears the master key
+        CSyncCheckpoint::strMasterPrivKey = "";
     } else {
-    	fOk = Checkpoints::SetCheckpointPrivKey(params[0].get_str());
+        fOk = Checkpoints::SetCheckpointPrivKey(params[0].get_str());
+    }
+
+    result.push_back(Pair("result", fOk ? "OK" : "ERROR"));
+
+    return result;
+}
+
+Value sendcheckpointforhash(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() > 1)
+        throw runtime_error(
+            "sendcheckpointforhash <hash>\n"
+            "<hash> is hex string of of the block hash\n"
+            "Returns OK or ERROR");
+
+    std::string strHash = params[0].get_str();
+    uint256 hash(strHash);
+
+    Object result;
+    bool fOk;
+
+    if (params.size() != 1) {
+        fOk = false;
+    } else {
+        fOk = Checkpoints::SendSyncCheckpoint(hash);
     }
 
     result.push_back(Pair("result", fOk ? "OK" : "ERROR"));

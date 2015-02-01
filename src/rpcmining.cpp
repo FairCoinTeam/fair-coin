@@ -13,7 +13,7 @@ using namespace json_spirit;
 using namespace std;
 
 extern double GetDifficultyFromBits(unsigned int nBits);
-extern unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfStake, int algo);
+extern unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfStake);
 
 Value getgenerate(const Array& params, bool fHelp)
 {
@@ -72,7 +72,7 @@ Value getmininginfo(const Array& params, bool fHelp)
             "getmininginfo\n"
             "Returns an object containing mining-related information.");
 
-    unsigned int nBits = GetNextTargetRequired(pindexBest, false, miningAlgo);
+    unsigned int nBits = GetNextTargetRequired(pindexBest, false);
 
     Object obj;
     obj.push_back(Pair("blocks",        (int)nBestHeight));
@@ -130,7 +130,7 @@ Value getworkex(const Array& params, bool fHelp)
             nStart = GetTime();
 
             // Create new block
-            pblock = CreateNewBlock(pwalletMain, false, miningAlgo);
+            pblock = CreateNewBlock(pwalletMain, false);
             if (!pblock)
                 throw JSONRPCError(-7, "Out of memory");
             vNewBlock.push_back(pblock);
@@ -277,7 +277,7 @@ Value getwork(const Array& params, bool fHelp)
             nStart = GetTime();
 
             // Create new block
-            pblock = CreateNewBlock(pwalletMain, false, miningAlgo);
+            pblock = CreateNewBlock(pwalletMain, false);
             if (!pblock)
                 throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory");
             vNewBlock.push_back(pblock);
@@ -422,7 +422,7 @@ Value getblocktemplate(const Array& params, bool fHelp)
             delete pblock;
             pblock = NULL;
         }
-        pblock = CreateNewBlock(pwalletMain, false, miningAlgo);
+        pblock = CreateNewBlock(pwalletMain, false);
         if (!pblock)
             throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory");
 

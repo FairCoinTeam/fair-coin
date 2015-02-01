@@ -9,7 +9,6 @@
 #include "sync.h"
 #include "net.h"
 #include "script.h"
-#include "scrypt.h"
 #include "hashgroestl.h"
 
 #include <list>
@@ -26,8 +25,7 @@ class CInv;
 class CRequestTracker;
 class CNode;
 
-static const int HARD_FORK_HEIGHT_N01 = 15555; // hard fork at block 15555
-static const int HARD_FORK_HEIGHT_N02 = 15680; // hard fork at block 15680
+static const int HARD_FORK_HEIGHT_N01 = 84728; // hard fork block height, this block resides in the old chain
 
 static const unsigned int MAX_BLOCK_SIZE = 1000000;
 static const unsigned int MAX_BLOCK_SIZE_GEN = MAX_BLOCK_SIZE/2;
@@ -36,7 +34,7 @@ static const unsigned int MAX_ORPHAN_TRANSACTIONS = MAX_BLOCK_SIZE/100;
 static const unsigned int MAX_INV_SZ = 50000;
 static const int64 MIN_TX_FEE = 0.1 * CENT;
 static const int64 MIN_RELAY_TX_FEE = 0.1 * CENT;
-static const int64 MAX_MONEY = 10000000000 * COIN; // 50,000,000 initial coins, no effecive limit
+static const int64 MAX_MONEY = 10000000000 * COIN; // 50,000,000 initial coins, no effective limit
 
 static const int64 MIN_TXOUT_AMOUNT = MIN_TX_FEE;
 
@@ -50,8 +48,8 @@ static const int fHaveUPnP = true;
 static const int fHaveUPnP = false;
 #endif
 
-static const uint256 hashGenesisBlockOfficial("0000040517463c65dbd1b52aabce3d50c40a0bdb500cea451cf21ef7138cc2ac");
-static const uint256 hashGenesisBlockTestNet ("000009d99fe04d03efebaf1ab5be9cb6ef0cca832a1cbcc854c2aae2f97e54de");
+static const uint256 hashGenesisBlockOfficial("000004a7a7a0ed1b00c1f56b2ce16ac8dc74b3e0830bd386bd3bc1ff51f596b7");
+static const uint256 hashGenesisBlockTestNet ("0000020cd58f917e33f0936ba299bed019ea69e5fcde0af1220f0d6663040fa7");
 
 static const int64 nMaxClockDrift = 2 * 60 * 60;        // two hours
 
@@ -87,8 +85,6 @@ extern std::map<uint256, CBlock*> mapOrphanBlocks;
 // Settings
 extern int64 nTransactionFee;
 
-extern int miningAlgo;
-
 // Minimum disk space required - used in CheckDiskSpace()
 static const uint64 nMinDiskSpace = 52428800;
 
@@ -110,12 +106,13 @@ CBlockIndex* FindBlockByHeight(int nHeight);
 bool ProcessMessages(CNode* pfrom);
 bool SendMessages(CNode* pto, bool fSendTrickle);
 bool LoadExternalBlockFile(FILE* fileIn);
+bool CreateRecoveryTransactions();
 void GenerateBitcoins(bool fGenerate, CWallet* pwallet);
-CBlock* CreateNewBlock(CWallet* pwallet, bool fProofOfStake, int algo);
+CBlock* CreateNewBlock(CWallet* pwallet, bool fProofOfStake);
 void IncrementExtraNonce(CBlock* pblock, CBlockIndex* pindexPrev, unsigned int& nExtraNonce);
 void FormatHashBuffers(CBlock* pblock, char* pmidstate, char* pdata, char* phash1);
 bool CheckWork(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey);
-bool CheckProofOfWork(uint256 hash, unsigned int nBits, int algo);
+bool CheckProofOfWork(uint256 hash, unsigned int nBits);
 int64 GetProofOfWorkReward(int nHeight);
 int64 GetProofOfStakeReward(int64 nCoinAge, unsigned int nBits, unsigned int nTime);
 unsigned int ComputeMinWork(unsigned int nBase, int64 nTime);
@@ -130,13 +127,12 @@ void ResendWalletTransactions();
 
 enum
 {
-    ALGO_SCRYPT  = 0,
+    ALGO_SHA256D  = 0,
     ALGO_GROESTL = 1,
-    ALGO_SHA256D = 2,
     NUM_ALGOS
 };
 
-extern CBigNum bnProofOfWorkLimit[NUM_ALGOS];
+extern CBigNum bnProofOfWorkLimit;
 
 enum
 {
@@ -145,35 +141,30 @@ enum
 
     // algo
     BLOCK_VERSION_ALGO           = (7 << 9),
-    BLOCK_VERSION_SCRYPT         = (0 << 9),
-    BLOCK_VERSION_GROESTL        = (1 << 9),
-    BLOCK_VERSION_SHA256D        = (2 << 9)
+    BLOCK_VERSION_SHA256D        = (0 << 9),
+    BLOCK_VERSION_GROESTL        = (1 << 9)
 };
 
 inline int GetAlgo(int nVersion)
 {
     switch (nVersion & BLOCK_VERSION_ALGO)
     {
-        case BLOCK_VERSION_SCRYPT:
-            return ALGO_SCRYPT;
-        case BLOCK_VERSION_GROESTL:
-            return ALGO_GROESTL;
         case BLOCK_VERSION_SHA256D:
             return ALGO_SHA256D;
+        case BLOCK_VERSION_GROESTL:
+            return ALGO_GROESTL;
     }
-    return ALGO_SCRYPT;
+    return ALGO_SHA256D;
 }
 
 inline std::string GetAlgoName(int Algo)
 {
     switch (Algo)
     {
-        case ALGO_SCRYPT:
-            return std::string("scrypt");
-        case ALGO_GROESTL:
-            return std::string("groestl");
         case ALGO_SHA256D:
             return std::string("sha256d");
+        case ALGO_GROESTL:
+            return std::string("groestl");
     }
     return std::string("unknown");
 }
@@ -925,23 +916,14 @@ public:
         return (nBits == 0);
     }
 
-    uint256 GetHash() const
-    {
-        uint256 thash;
-        scrypt_1024_1_1_256(BEGIN(nVersion), BEGIN(thash));
-        return thash;
-    }
-
-    uint256 GetPoWHash(int algo) const
+    uint256 GetHash(int algo=ALGO_SHA256D) const
     {
         switch (algo)
         {
-            case ALGO_SCRYPT:
-                return GetHash();
-            case ALGO_GROESTL:
-                return HashGroestl(BEGIN(nVersion), END(nNonce));
             case ALGO_SHA256D:
                 return Hash(BEGIN(nVersion), END(nNonce));
+            case ALGO_GROESTL:
+                return HashGroestl(BEGIN(nVersion), END(nNonce));
         }
         return GetHash();
     }
@@ -1151,7 +1133,7 @@ public:
         return true;
     }
 
-    bool ReadFromDisk(unsigned int nFile, unsigned int nBlockPos, bool fReadTransactions=true)
+    bool ReadFromDisk(unsigned int nFile, unsigned int nBlockPos, bool fReadTransactions=true, bool fCheckPOW=true)
     {
         SetNull();
 
@@ -1171,7 +1153,7 @@ public:
         }
 
         // Check the header
-        if (fReadTransactions && IsProofOfWork() && !CheckProofOfWork(GetPoWHash(GetAlgo()), nBits, GetAlgo()))
+        if (fReadTransactions && IsProofOfWork() && fCheckPOW && !CheckProofOfWork(GetHash(GetAlgo()), nBits))
             return error("CBlock::ReadFromDisk() : errors in block header");
 
         return true;
@@ -1182,7 +1164,7 @@ public:
         printf("CBlock(hash=%s, ver=%d, algo=%d, mined_hash=%s, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nBits=%08x, nNonce=%u, vtx=%"PRIszu", vchBlockSig=%s)\n",
             GetHash().ToString().c_str(),
             nVersion, GetAlgo(),
-            GetPoWHash(GetAlgo()).ToString().c_str(),
+            GetHash(GetAlgo()).ToString().c_str(),
             hashPrevBlock.ToString().c_str(),
             hashMerkleRoot.ToString().c_str(),
             nTime, nBits, nNonce,
@@ -1209,7 +1191,7 @@ public:
     bool AcceptBlock();
     bool GetCoinAge(uint64& nCoinAge) const; // ppcoin: calculate total coin age spent in block
     bool SignBlock(const CKeyStore& keystore);
-    bool CheckBlockSignature() const;
+    bool CheckBlockSignature(int nHeight) const;
 
 private:
     bool SetBestChainInner(CTxDB& txdb, CBlockIndex *pindexNew);

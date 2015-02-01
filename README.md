@@ -2,7 +2,7 @@ FairCoin: promoting equality and a fair economy
 ===============================================
 
 Coin parameters:  
-Grøstl, scrypt and sha256 PoW/PoS hybrid  
+Grøstl and sha256 PoW/PoS hybrid  
 50,000,000 premined coins  
 Flat 6%/year minting reward, halving every year until baseline of 1.5%  
 21/90 days min/max weight  

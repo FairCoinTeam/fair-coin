@@ -11,6 +11,7 @@
 #include "init.h"
 #include "ui_interface.h"
 #include "kernel.h"
+#include "bitcoinrpc.h"
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
@@ -35,9 +36,9 @@ map<uint256, CBlockIndex*> mapBlockIndex;
 set<pair<COutPoint, unsigned int> > setStakeSeen;
 uint256 hashGenesisBlock = hashGenesisBlockOfficial;
 
-CBigNum bnProofOfWorkLimit[NUM_ALGOS];
+CBigNum bnProofOfWorkLimit = CBigNum(~uint256(0) >> 20);
 
-static CBigNum bnProofOfStakeLimit(~uint256(0) >> 24); // PoS is always scrypt
+static CBigNum bnProofOfStakeLimit(~uint256(0) >> 24); // PoS is always sha256
 static CBigNum bnProofOfStakeHardLimit(~uint256(0) >> 30); // disabled temporarily, will be used in the future to fix minimum PoS difficulty at 0.25
 
 
@@ -48,6 +49,8 @@ unsigned int nStakeMinAge = 60 * 60 * 24 * 21; // minimum age for coin age (21 d
 unsigned int nStakeMaxAge = 60 * 60 * 24 * 90; // stake age of full weight (90 days)
 unsigned int nStakeTargetSpacing = 10 * 60; // 10 minute block spacing
 unsigned int nProofOfWorkTargetSpacing = 5 * 60; // 5 minutes PoW block spacing
+
+CBitcoinAddress recoveryAddress("fairToRTehuSrskfG63xkFAZrzbxf85B82");
 
 int64 nChainStartTime = 1389138959;
 int nCoinbaseMaturity = 5;
@@ -76,8 +79,6 @@ const string strMessageMagic = "FairCoin Signed Message:\n";
 
 double dHashesPerSec;
 int64 nHPSTimerStart;
-
-int miningAlgo = ALGO_GROESTL;
 
 // Settings
 int64 nTransactionFee = MIN_TX_FEE;
@@ -918,7 +919,7 @@ bool CBlock::ReadFromDisk(const CBlockIndex* pindex, bool fReadTransactions)
         *this = pindex->GetBlockHeader();
         return true;
     }
-    if (!ReadFromDisk(pindex->nFile, pindex->nBlockPos, fReadTransactions))
+    if (!ReadFromDisk(pindex->nFile, pindex->nBlockPos, fReadTransactions, pindex->nHeight > HARD_FORK_HEIGHT_N01 || fTestNet))
         return false;
     if (GetHash() != pindex->GetBlockHash())
         return error("CBlock::ReadFromDisk() : GetHash() doesn't match index");
@@ -1000,7 +1001,7 @@ unsigned int ComputeMinWork(unsigned int nBase, int64 nTime)
         bnResult = bnTargetLimit;
     return bnResult.GetCompact();*/
 
-    return bnProofOfWorkLimit[ALGO_SCRYPT].GetCompact();
+    return bnProofOfWorkLimit.GetCompact();
 }
 
 // ppcoin: find last block index up to pindex
@@ -1011,7 +1012,7 @@ const CBlockIndex* GetLastBlockIndex(const CBlockIndex* pindex, bool fProofOfSta
     return pindex;
 }
 
-unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, uint64 TargetBlocksSpacingSeconds, int algo) {
+unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, uint64 TargetBlocksSpacingSeconds) {
     /* difficulty formula, DarkGravity v3, written by Evan Duffield - evan@darkcoin.io */
     const CBlockIndex *BlockLastSolved = pindexLast;
     const CBlockIndex *BlockReading = pindexLast;
@@ -1025,15 +1026,15 @@ unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, uint64 Targe
     CBigNum PastDifficultyAveragePrev;
 
     if (BlockLastSolved == NULL || BlockLastSolved->nHeight == 0 || BlockLastSolved->nHeight < PastBlocksMin) {
-        return bnProofOfWorkLimit[miningAlgo].GetCompact();
+        return bnProofOfWorkLimit.GetCompact();
     }
 
     while (BlockReading && BlockReading->nHeight > 0) {
         if (PastBlocksMax > 0 && CountBlocks >= PastBlocksMax)
         	break;
 
-        // we only consider proof-of-work blocks for the configured mining algo here
-        if (BlockReading->IsProofOfStake() || GetAlgo(BlockReading->nVersion) != algo) {
+        // we only consider proof-of-work blocks
+        if (BlockReading->IsProofOfStake()) {
         	BlockReading = BlockReading->pprev;
             continue;
         }
@@ -1064,14 +1065,14 @@ unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, uint64 Targe
     }
 
     if (!CountBlocks)
-        return bnProofOfWorkLimit[miningAlgo].GetCompact();
+        return bnProofOfWorkLimit.GetCompact();
 
     CBigNum bnNew(PastDifficultyAverage);
 
     int64 nTargetTimespan = CountBlocks * TargetBlocksSpacingSeconds;
 
     if (GetBoolArg("-debugdgw"))
-    	printf("DGW(%s): nActualTimespan = %"PRI64d", nTargetTimespan = %"PRI64d"\n", GetAlgoName(algo).c_str(), nActualTimespan, nTargetTimespan);
+    	printf("DGW: nActualTimespan = %"PRI64d", nTargetTimespan = %"PRI64d"\n", nActualTimespan, nTargetTimespan);
 
     if (nActualTimespan < nTargetTimespan/3)
         nActualTimespan = nTargetTimespan/3;
@@ -1083,8 +1084,8 @@ unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, uint64 Targe
     bnNew *= nActualTimespan;
     bnNew /= nTargetTimespan;
 
-    if (bnNew > bnProofOfWorkLimit[algo])
-        bnNew = bnProofOfWorkLimit[algo];
+    if (bnNew > bnProofOfWorkLimit)
+        bnNew = bnProofOfWorkLimit;
 
     if (GetBoolArg("-debugdgw")) {
         printf("Difficulty Retarget - Dark Gravity Well version 3 at height: %d\n", pindexLast->nHeight);
@@ -1097,13 +1098,13 @@ unsigned int static DarkGravityWave3(const CBlockIndex* pindexLast, uint64 Targe
     return bnNew.GetCompact();
 }
 
-unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfStake, int algo)
+unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfStake)
 {
     if (pindexLast == NULL)
-        return bnProofOfWorkLimit[ALGO_SCRYPT].GetCompact(); // genesis block
+        return bnProofOfWorkLimit.GetCompact(); // genesis block
 
     // Proof-of-Stake blocks has own target limit
-    CBigNum bnTargetLimit = fProofOfStake ? bnProofOfStakeLimit : bnProofOfWorkLimit[algo];
+    CBigNum bnTargetLimit = fProofOfStake ? bnProofOfStakeLimit : bnProofOfWorkLimit;
 
     const CBlockIndex* pindexPrev = GetLastBlockIndex(pindexLast, fProofOfStake);
     if (pindexPrev->pprev == NULL)
@@ -1112,27 +1113,22 @@ unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfS
     if (pindexPrevPrev->pprev == NULL)
         return bnTargetLimit.GetCompact(); // second block
 
-    // the last PoW mined block before hard fork 1 was at height 7684
-    if (!fProofOfStake && (pindexPrev->nHeight >= 7684 || fTestNet))
+    if (!fProofOfStake)
     {
-        return DarkGravityWave3(pindexLast, nProofOfWorkTargetSpacing, algo);
+        return DarkGravityWave3(pindexLast, nProofOfWorkTargetSpacing);
     }
 
     int64 nActualSpacing = pindexPrev->GetBlockTime() - pindexPrevPrev->GetBlockTime();
+
+    // we don't accept blocks with an earlier block time
+    if (nActualSpacing <= 0)
+        return CBigNum(~uint256(0) >> 32).GetCompact();
 
     // ppcoin: target change every block
     // ppcoin: retarget with exponential moving toward target spacing
     CBigNum bnNew;
     bnNew.SetCompact(pindexPrev->nBits);
     int64 nTargetSpacing = fProofOfStake? nStakeTargetSpacing : min(nTargetSpacingWorkMax, (int64) nStakeTargetSpacing * (1 + pindexLast->nHeight - pindexPrev->nHeight));
-    if (nActualSpacing <= 0 && pindexPrev->nHeight > 2490) {
-        if (pindexPrev->nHeight < 4800) {
-        	return bnTargetLimit.GetCompact();
-        } else {
-        	nActualSpacing = nTargetSpacing;
-        }
-    }
-
     int64 nInterval = nTargetTimespan / nTargetSpacing;
     bnNew *= ((nInterval - 1) * nTargetSpacing + nActualSpacing + nActualSpacing);
     bnNew /= ((nInterval + 1) * nTargetSpacing);
@@ -1143,20 +1139,20 @@ unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfS
     return bnNew.GetCompact();
 }
 
-bool CheckProofOfWork(uint256 hash, unsigned int nBits, int algo)
+bool CheckProofOfWork(uint256 hash, unsigned int nBits)
 {
-    CBigNum bnTarget, limit = bnProofOfWorkLimit[algo];
+    CBigNum bnTarget, limit = bnProofOfWorkLimit;
     bnTarget.SetCompact(nBits);
 
     // Check range
     if (bnTarget <= 0 || bnTarget > limit) {
-        printf("CheckProofOfWork() : nBits below minimum work for algo %s: %s > %s\n", GetAlgoName(algo).c_str(), bnTarget.getuint256().GetHex().c_str(), limit.getuint256().GetHex().c_str());
+        printf("CheckProofOfWork() : nBits below minimum work: %s > %s\n", bnTarget.getuint256().GetHex().c_str(), limit.getuint256().GetHex().c_str());
         return error("CheckProofOfWork() : nBits below minimum work");
     }
 
     // Check proof of work matches claimed amount
     if (hash > bnTarget.getuint256())
-        return error("CheckProofOfWork() : hash %s doesn't match nBits %d", hash.GetHex().c_str(), nBits);
+        return error("CheckProofOfWork() : hash %s doesn't match nBits %08x at height %d", hash.GetHex().c_str(), nBits, pindexBest->nHeight);
 
     return true;
 }
@@ -1558,7 +1554,7 @@ bool CBlock::DisconnectBlock(CTxDB& txdb, CBlockIndex* pindex)
 bool CBlock::ConnectBlock(CTxDB& txdb, CBlockIndex* pindex, bool fJustCheck)
 {
     // Check it again in case a previous version let a bad block in
-    if (!CheckBlock(!fJustCheck, !fJustCheck, false))
+    if (!CheckBlock(!fJustCheck && (pindex->nHeight > HARD_FORK_HEIGHT_N01 || fTestNet), !fJustCheck, false))
         return false;
 
     // Do not allow blocks that contain transactions which 'overwrite' older transactions,
@@ -1889,6 +1885,7 @@ bool CBlock::SetBestChain(CTxDB& txdb, CBlockIndex* pindexNew)
       hashBestChain.ToString().substr(0,20).c_str(), nBestHeight, bnBestChainTrust.ToString().c_str(),
       DateTimeStrFormat("%x %H:%M:%S", pindexBest->GetBlockTime()).c_str());
 
+    /*
     // Check the version of the last 100 blocks to see if we need to upgrade:
     if (!fIsInitialDownload)
     {
@@ -1896,7 +1893,7 @@ bool CBlock::SetBestChain(CTxDB& txdb, CBlockIndex* pindexNew)
         const CBlockIndex* pindex = pindexBest;
         for (int i = 0; i < 100 && pindex != NULL; i++)
         {
-            if (pindex->nVersion > (BLOCK_VERSION_DEFAULT | BLOCK_VERSION_SHA256D))
+            if (pindex->nVersion > (BLOCK_VERSION_DEFAULT | BLOCK_VERSION_GROESTL))
                 ++nUpgraded;
             pindex = pindex->pprev;
         }
@@ -1906,6 +1903,7 @@ bool CBlock::SetBestChain(CTxDB& txdb, CBlockIndex* pindexNew)
             // strMiscWarning is read by GetWarnings(), called by Qt and the JSON-RPC code to warn the user:
             strMiscWarning = _("Warning: This version is obsolete, upgrade required!");
     }
+    */
 
     std::string strCmd = GetArg("-blocknotify", "");
 
@@ -2076,7 +2074,7 @@ bool CBlock::CheckBlock(bool fCheckPOW, bool fCheckMerkleRoot, bool fCheckSig) c
         return DoS(100, error("CheckBlock() : size limits failed"));
 
     // Check proof of work matches claimed amount
-    if (fCheckPOW && IsProofOfWork() && !CheckProofOfWork(GetPoWHash(GetAlgo()), nBits, GetAlgo()))
+    if (fCheckPOW && IsProofOfWork() && pindexPrev->nHeight > HARD_FORK_HEIGHT_N01 && !CheckProofOfWork(GetHash(GetAlgo()), nBits))
         return DoS(50, error("CheckBlock() : proof of work failed"));
 
     // Check timestamp
@@ -2147,7 +2145,7 @@ bool CBlock::CheckBlock(bool fCheckPOW, bool fCheckMerkleRoot, bool fCheckSig) c
         return DoS(100, error("CheckBlock() : hashMerkleRoot mismatch"));
 
     // ppcoin: check block signature
-    if (fCheckSig && !CheckBlockSignature())
+    if (fCheckSig && !CheckBlockSignature(pindexPrev->nHeight))
         return DoS(100, error("CheckBlock() : bad block signature"));
 
     return true;
@@ -2168,7 +2166,7 @@ bool CBlock::AcceptBlock()
     int nHeight = pindexPrev->nHeight+1;
 
     // Check proof-of-work or proof-of-stake
-    if (nBits != GetNextTargetRequired(pindexPrev, IsProofOfStake(), GetAlgo()))
+    if ((nHeight > HARD_FORK_HEIGHT_N01 || fTestNet) && nBits != GetNextTargetRequired(pindexPrev, IsProofOfStake()))
         return DoS(100, error("AcceptBlock() : incorrect %s", IsProofOfWork() ? "proof-of-work" : "proof-of-stake"));
 
     // Check timestamp against prev
@@ -2197,11 +2195,9 @@ bool CBlock::AcceptBlock()
         }
     }
 
-    // Reject block.nVersion not BLOCK_VERSION_DEFAULT or BLOCK_VERSION_GROESTL or BLOCK_VERSION_SHA256D and is not genesis block
-    if (nVersion != (BLOCK_VERSION_GROESTL | BLOCK_VERSION_DEFAULT) &&
-    		nVersion != (BLOCK_VERSION_SHA256D | BLOCK_VERSION_DEFAULT) &&
-    		nVersion != BLOCK_VERSION_DEFAULT && nHeight > 0)
-        return error("CheckBlock() : rejected nVersion");
+    // Reject block.nVersion not BLOCK_VERSION_SHA256D
+    if (nVersion != ((IsProofOfStake() ? BLOCK_VERSION_SHA256D : BLOCK_VERSION_GROESTL) | BLOCK_VERSION_DEFAULT))
+        return error("CheckBlock() : rejected nVersion %d for proof-of-%s block", nVersion, (IsProofOfStake() ? "stake" : "work"));
 
     // Enforce rule that the coinbase starts with serialized block height
     CScript expect = CScript() << nHeight;
@@ -2262,7 +2258,7 @@ bool ProcessBlock(CNode* pfrom, CBlock* pblock)
         return error("ProcessBlock() : duplicate proof-of-stake (%s, %d) for block %s", pblock->GetProofOfStake().first.ToString().c_str(), pblock->GetProofOfStake().second, hash.ToString().c_str());
 
     // Preliminary checks
-    if (!pblock->CheckBlock())
+    if (!pblock->CheckBlock(nBestHeight > HARD_FORK_HEIGHT_N01 || fTestNet))
         return error("ProcessBlock() : CheckBlock FAILED");
 
     // ppcoin: verify hash target and signature of coinstake tx
@@ -2382,7 +2378,6 @@ bool CBlock::SignBlock(const CKeyStore& keystore)
                 // Sign
                 valtype& vchPubKey = vSolutions[0];
                 CKey key;
-
                 if (!keystore.GetKey(Hash160(vchPubKey), key))
                     continue;
                 if (key.GetPubKey() != vchPubKey)
@@ -2421,15 +2416,30 @@ bool CBlock::SignBlock(const CKeyStore& keystore)
 }
 
 // ppcoin: check block signature
-bool CBlock::CheckBlockSignature() const
+bool CBlock::CheckBlockSignature(int nHeight) const
 {
     if (GetHash() == (!fTestNet ? hashGenesisBlock : hashGenesisBlockTestNet))
         return vchBlockSig.empty();
 
+    // blocks prior the hard fork were signed with the checkpoint master key during
+    // block chain migration
+    if (nHeight < HARD_FORK_HEIGHT_N01 && !fTestNet) {
+        CScript expect = CScript() << (nHeight + 1);
+        // only check signature if the block height matches. Can be different when we
+        // receive an orphan block during chain download
+        if (std::equal(expect.begin(), expect.end(), vtx[0].vin[0].scriptSig.begin())) {
+            CKey key;
+            if (!key.SetPubKey(ParseHex(CSyncCheckpoint::strMainMasterPubKey)))
+                return error("CBlock::CheckBlockSignature() : SetPubKey failed");
+
+            return key.Verify(GetHash(), vchBlockSig);
+        }
+    }
+
     vector<valtype> vSolutions;
     txnouttype whichType;
 
-    if(IsProofOfStake())
+    if (IsProofOfStake())
     {
         const CTxOut& txout = vtx[1].vout[1];
 
@@ -2728,7 +2738,7 @@ bool LoadBlockIndex(bool fAllowNew)
 //    CTxOut(empty)
 //vMerkleTree: ea6fed5e2
         // Genesis block
-        const char* pszTimestamp = "2 Altcoin generators hit the marker, mayhem ensues";
+        const char* pszTimestamp = "Fair.Coop - The Earth Cooperative for a Fair Economy";
         CTransaction txNew;
         txNew.nTime = nChainStartTime;
         txNew.vin.resize(1);
@@ -2739,29 +2749,29 @@ bool LoadBlockIndex(bool fAllowNew)
         block.vtx.push_back(txNew);
         block.hashPrevBlock = 0;
         block.hashMerkleRoot = block.BuildMerkleTree();
-        block.nVersion = 1;
+        block.nVersion = BLOCK_VERSION_DEFAULT | BLOCK_VERSION_GROESTL;
         block.nTime    = nChainStartTime + 15;
-        block.nBits    = bnProofOfWorkLimit[ALGO_SCRYPT].GetCompact();
-        block.nNonce   = fTestNet ? 3631470 : 3477225;
+        block.nBits    = bnProofOfWorkLimit.GetCompact();
+        block.nNonce   = fTestNet ? 4793357 : 1953425;
 
 #if 0
-			if (block.GetHash() != hashGenesisBlock) {
-				printf("block.GetHash()  = %s\n", block.GetHash().ToString().c_str());
-				printf("hashGenesisBlock = %s\n", hashGenesisBlock.ToString().c_str());
-				printf("CREATE GENESIS BLOCK CODE\n");
+        if (block.GetHash() != hashGenesisBlock) {
+            printf("block.GetHash()  = %s\n", block.GetHash().ToString().c_str());
+            printf("hashGenesisBlock = %s\n", hashGenesisBlock.ToString().c_str());
+            printf("CREATE GENESIS BLOCK CODE\n");
 
-			// This will figure out a valid hash and Nonce if you're
-			// creating a different genesis block:
-			uint256 hashTarget = CBigNum().SetCompact(block.nBits).getuint256();
-			while (block.GetHash() > hashTarget)
-			{
-				++block.nNonce;
-				if (block.nNonce == 0)
-				{
-					printf("NONCE WRAPPED, incrementing time");
-					++block.nTime;
-				}
-			}
+            // This will figure out a valid hash and Nonce if you're
+            // creating a different genesis block:
+            uint256 hashTarget = CBigNum().SetCompact(block.nBits).getuint256();
+            while (block.GetHash() > hashTarget)
+            {
+                ++block.nNonce;
+                if (block.nNonce == 0)
+                {
+                    printf("NONCE WRAPPED, incrementing time");
+                    ++block.nTime;
+                }
+            }
         }
 #endif
 
@@ -2772,7 +2782,7 @@ bool LoadBlockIndex(bool fAllowNew)
         printf("block.nTime = %u \n", block.nTime);
         printf("block.nNonce = %u \n", block.nNonce);
 
-        assert(block.hashMerkleRoot == uint256("0x236959d957876b91e6f2ade59f028b1742ff70e78712f6ba4a53efcaec7ac270"));
+        assert(block.hashMerkleRoot == uint256("57e4fd305291393821d698799b2709fcffb2ee09520ffd7a0b56648d224c467e"));
 
         assert(block.GetHash() == hashGenesisBlock);
 
@@ -2868,7 +2878,7 @@ void PrintBlockTree()
             pindex->nFile,
             pindex->nBlockPos,
             block.GetHash().ToString().c_str(),
-            block.GetPoWHash(block.GetAlgo()).ToString().c_str(),
+            block.GetHash(block.GetAlgo()).ToString().c_str(),
             block.nBits,
             pindex->nStakeModifierChecksum,
             DateTimeStrFormat("%x %H:%M:%S", block.GetBlockTime()).c_str(),
@@ -2896,9 +2906,191 @@ void PrintBlockTree()
     puts("\n");
 }
 
-bool LoadExternalBlockFile(FILE* fileIn)
+void ConvertBlock(CBlock* pblock, CKey key)
+{
+    pblock->nVersion = BLOCK_VERSION_DEFAULT | (pblock->IsProofOfStake() ? BLOCK_VERSION_SHA256D : BLOCK_VERSION_GROESTL);
+
+    pblock->hashPrevBlock = pindexBest->GetBlockHash();
+    pblock->vchBlockSig.clear();
+
+    if (!key.Sign(pblock->GetHash(), pblock->vchBlockSig)) {
+        printf("could not sign block!\n");
+        return;
+    }
+
+    if (!key.Verify(pblock->GetHash(), pblock->vchBlockSig))
+        printf("could not verify block signature!\n");
+}
+
+static vector<COutPoint> CreateOutPointsFromFile()
+{
+    vector<COutPoint> prevfOutputs;
+    ifstream input(GetArg("-recoverytransactions", "").c_str());
+
+    if (!input.is_open()) {
+        printf("could not open recovery transaction inputs file: %s\n", GetArg("-recoverytransactions", "").c_str());
+        return prevfOutputs;
+    }
+
+    string line;
+    while (getline(input,line)) {
+        std::stringstream lineStream(line);
+        std::string col;
+        vector<string> cols;
+
+        while(getline(lineStream,col,':'))
+        {
+            cols.push_back(col);
+        }
+
+        if (cols.size() < 2)
+            break;
+
+        COutPoint op(uint256(cols[1]), atoi(cols[2]));
+        prevfOutputs.push_back(op);
+    }
+
+    return prevfOutputs;
+}
+
+bool CreateRecoveryTransactions()
+{
+    unsigned int nExtraNonce = 0, nInputsPerTransaction = 200, i, cursor = 0, nCurrentTx = 0;
+    CBlockIndex* pindexPrev = pindexBest;
+    CTxDB txdb("r");
+
+    CBitcoinSecret vchSecret;
+    vchSecret.SetString(GetArg("-recoveryaddressprivkey",""));
+
+    if (!vchSecret.IsValid())
+        return error("recovery private key data is invalid");
+
+    // compose a temporary key store for signing the transactions
+    CBasicKeyStore tempKeystore;
+    CKey key;
+    bool fCompressed;
+    CSecret secret = vchSecret.GetSecret(fCompressed);
+    key.SetSecret(secret, fCompressed);
+    tempKeystore.AddKey(key);
+
+    // create a new block
+    CBlock* pblock = CreateNewBlock(pwalletMain, false);
+    IncrementExtraNonce(pblock, pindexPrev, nExtraNonce);
+
+    // create a pubKey script which spends the inputs to the recovery address
+    CKeyID recoveryAddressKeyId;
+    recoveryAddress.GetKeyID(recoveryAddressKeyId);
+    CScript recoveryScript;
+    recoveryScript.SetDestination(recoveryAddressKeyId);
+
+    // import the UTXOs from a file (defined by the option -recoverytransactions)
+    std::vector<COutPoint> prevfOutputs = CreateOutPointsFromFile();
+    if (prevfOutputs.size() == 0)
+        return error("could not create recovery transactions");
+
+    // coinbase transaction
+    pblock->vtx[0].vout[0].scriptPubKey = CScript() << key.GetPubKey() << OP_CHECKSIG;
+
+    CTransaction txNew;
+    int64 nOutValue = 0, nOutputs = prevfOutputs.size();
+
+    // iterate over the outputs list and store them in 20 transactions each
+    // containing 200 (nInputsPerTransaction) outputs (UTXOs)
+    unsigned int nInputs = nInputsPerTransaction;
+    for (i = 0 ; i <= nOutputs ; i++) {
+        if (i % nInputsPerTransaction == 0 || i == nOutputs) {
+            if (i) {
+            	unsigned int nSize = GetSerializeSize(pblock->vtx[nCurrentTx], SER_NETWORK, PROTOCOL_VERSION);
+            	int64 nFee = (1 + (int64)nSize / 1000) * MIN_TX_FEE;
+                printf("block size: %d, fee: %llu\n", nSize, nFee);
+                pblock->vtx[nCurrentTx].vout[0].nValue = nOutValue - nFee;
+                printf("setting value of tx to: %6.6f\n", (float) nOutValue / (float) COIN);
+                unsigned int cnt;
+                for (cnt = 0 ; cnt < nInputs ; cnt++) {
+                    if (!SignSignature(tempKeystore, recoveryScript, pblock->vtx[nCurrentTx], cnt, 0)) {
+                        return error("error signing transaction");
+                    }
+                }
+
+                if (i == nOutputs)
+                    break;
+            }
+
+            if ((nOutputs - i) < nInputsPerTransaction)
+                nInputs = nOutputs - i;
+
+            txNew.SetNull();
+            txNew.vout.resize(1);
+            txNew.vout[0].scriptPubKey = recoveryScript;
+            txNew.vin.resize(nInputs);
+            pblock->vtx.push_back(txNew);
+            cursor = 0;
+            nOutValue = 0;
+            nCurrentTx++;
+        }
+
+        pblock->vtx[nCurrentTx].vin[cursor++].prevout = prevfOutputs[i];
+
+        CTransaction prefTx;
+        txdb.ReadDiskTx(prevfOutputs[i], prefTx);
+
+        if (prefTx.vout.size() <= prevfOutputs[i].n) {
+            printf("ERROR OUTPOINT: %s\n", prevfOutputs[i].ToString().c_str());
+            prefTx.print();
+            continue;
+        }
+
+        CTxOut txOut = prefTx.vout[prevfOutputs[i].n];
+        nOutValue += txOut.nValue;
+        //printf("Value: %2.6f, sum:%2.6f, pos: %d\n", (float)nOutValue / (float)1000000 ,(float)txOut.nValue / (float)1000000 , i);
+    }
+
+    pblock->hashMerkleRoot = pblock->BuildMerkleTree();
+    pblock->nTime = GetAdjustedTime();
+
+    printf("Difficulty: %2.8f\n", GetDifficultyFromBits(pblock->nBits));
+
+    uint256 hashTarget = CBigNum().SetCompact(pblock->nBits).getuint256();
+    while (pblock->GetHash(pblock->GetAlgo()) > hashTarget)
+    {
+        ++pblock->nNonce;
+        if (pblock->nNonce == 0)
+        {
+            printf("NONCE WRAPPED, incrementing time");
+            ++pblock->nTime;
+        }
+    }
+
+    pblock->SignBlock(tempKeystore);
+
+    printf("\n");
+    pblock->print();
+    printf("\n");
+
+    if (!ProcessBlock(NULL, pblock))
+        printf("error processing block\n");
+
+    txdb.Close();
+
+    return true;
+}
+
+bool
+LoadExternalBlockFile(FILE* fileIn)
 {
     int64 nStart = GetTimeMillis();
+    bool fConvertBlockchain = GetBoolArg("-convertblockchain", false);
+    CKey key;
+
+    if (fConvertBlockchain) {
+    	printf("\nConverting block chain from scrypt to sha256\n\n");
+    	std::vector<unsigned char> vchPrivKey = ParseHex(CSyncCheckpoint::strMasterPrivKey);
+
+    	if (vchPrivKey.empty())
+    		return error("checkpointkey not set");
+
+    	key.SetPrivKey(CPrivKey(vchPrivKey.begin(), vchPrivKey.end()));
+    }
 
     int nLoaded = 0;
     {
@@ -2939,12 +3131,26 @@ bool LoadExternalBlockFile(FILE* fileIn)
                 {
                     CBlock block;
                     blkdat >> block;
-                    if (ProcessBlock(NULL,&block))
+
+                    if (block.hashPrevBlock == 0)
                     {
-                        nLoaded++;
+                        printf("skipping genesis block\n");
+                        // skip the old genesis block
                         nPos += 4 + nSize;
+                        continue;
                     }
+
+                    if (fConvertBlockchain)
+                    	ConvertBlock(&block, key);
+
+                    if (ProcessBlock(NULL, &block))
+                        nLoaded++;
+
+                    nPos += 4 + nSize;
                 }
+
+                if (fConvertBlockchain && nBestHeight >= HARD_FORK_HEIGHT_N01)
+                	break;
             }
         }
         catch (std::exception &e) {
@@ -2952,9 +3158,29 @@ bool LoadExternalBlockFile(FILE* fileIn)
                    __PRETTY_FUNCTION__);
         }
     }
+
     printf("Loaded %i blocks from external file in %"PRI64d"ms\n", nLoaded, GetTimeMillis() - nStart);
     return nLoaded > 0;
 }
+
+template <typename T>
+std::vector<unsigned char> ToByteVector(const T& in)
+{
+    return std::vector<unsigned char>(in.begin(), in.end());
+}
+
+#if 0
+CScript GetScriptForMultisig(int nRequired, const std::vector<CPubKey>& keys)
+{
+    CScript script;
+
+    script << CScript::EncodeOP_N(nRequired);
+    BOOST_FOREACH(const CPubKey& key, keys)
+        script << key;
+    script << CScript::EncodeOP_N(keys.size()) << OP_CHECKMULTISIG;
+    return script;
+}
+#endif
 
 
 
@@ -3110,18 +3336,10 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
         CAddress addrFrom;
         uint64 nNonce = 1;
         vRecv >> pfrom->nVersion >> pfrom->nServices >> nTime >> addrMe;
-        if (pindexBest->nHeight >= HARD_FORK_HEIGHT_N01 && pfrom->nVersion < MIN_PROTO_VERSION_HF1)
+        if (pfrom->nVersion < MIN_PROTO_VERSION)
         {
             // Disconnect old wallets
-        	printf("partner %s using obsolete version %i; disconnecting HF1\n", pfrom->addr.ToString().c_str(), pfrom->nVersion);
-            pfrom->fDisconnect = true;
-            return false;
-        }
-
-        if (pindexBest->nHeight >= HARD_FORK_HEIGHT_N02 && pfrom->nVersion < MIN_PROTO_VERSION)
-        {
-            // Disconnect old wallets
-        	printf("partner %s using obsolete version %i; disconnecting HF2\n", pfrom->addr.ToString().c_str(), pfrom->nVersion);
+        	printf("remote node %s uses obsolete version %i; disconnecting\n", pfrom->addr.ToString().c_str(), pfrom->nVersion);
             pfrom->fDisconnect = true;
             return false;
         }
@@ -3645,7 +3863,6 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
         vRecv >> block;
 
         printf("received block %s\n", block.GetHash().ToString().substr(0,20).c_str());
-        // block.print();
 
         CInv inv(MSG_BLOCK, block.GetHash());
         pfrom->AddInventoryKnown(inv);
@@ -4252,7 +4469,7 @@ public:
 
 // CreateNewBlock:
 //   fProofOfStake: try (best effort) to make a proof-of-stake block
-CBlock* CreateNewBlock(CWallet* pwallet, bool fProofOfStake, int algo)
+CBlock* CreateNewBlock(CWallet* pwallet, bool fProofOfStake)
 {
     CReserveKey reservekey(pwallet);
 
@@ -4261,23 +4478,7 @@ CBlock* CreateNewBlock(CWallet* pwallet, bool fProofOfStake, int algo)
     if (!pblock.get())
         return NULL;
 
-    if (pindexBest->nHeight >= HARD_FORK_HEIGHT_N01 || fTestNet)
-    {
-    	switch (algo)
-		{
-			case ALGO_SCRYPT:
-				break;
-			case ALGO_GROESTL:
-				pblock->nVersion |= BLOCK_VERSION_GROESTL;
-				break;
-			case ALGO_SHA256D:
-				pblock->nVersion |= BLOCK_VERSION_SHA256D;
-				break;
-			default:
-				error("CreateNewBlock: bad algo");
-				return NULL;
-		}
-    }
+    pblock->nVersion |= (fProofOfStake ? BLOCK_VERSION_SHA256D : BLOCK_VERSION_GROESTL);
 
     // Create coinbase tx
     CTransaction txNew;
@@ -4319,7 +4520,7 @@ CBlock* CreateNewBlock(CWallet* pwallet, bool fProofOfStake, int algo)
 
     if (fProofOfStake)  // attempt to find a coinstake
     {
-        pblock->nBits = GetNextTargetRequired(pindexPrev, true, algo);
+        pblock->nBits = GetNextTargetRequired(pindexPrev, true);
         CTransaction txCoinStake;
         int64 nSearchTime = txCoinStake.nTime; // search to current time
         if (nSearchTime > nLastCoinStakeSearchTime)
@@ -4340,7 +4541,7 @@ CBlock* CreateNewBlock(CWallet* pwallet, bool fProofOfStake, int algo)
     }
     else
     {
-        pblock->nBits = GetNextTargetRequired(pindexPrev, false, algo);
+        pblock->nBits = GetNextTargetRequired(pindexPrev, false);
     }
 
     // Collect memory pool transactions into the block
@@ -4620,7 +4821,7 @@ void FormatHashBuffers(CBlock* pblock, char* pmidstate, char* pdata, char* phash
 bool CheckWork(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey)
 {
     int algo = pblock->GetAlgo();
-    uint256 hashPoW = pblock->GetPoWHash(algo);
+    uint256 hashPoW = pblock->GetHash(algo);
     uint256 hashTarget = CBigNum().SetCompact(pblock->nBits).getuint256();
 
     if (hashPoW > hashTarget && pblock->IsProofOfWork())
@@ -4711,7 +4912,7 @@ void FairCoinMiner(CWallet *pwallet, bool fProofOfStake)
         unsigned int nTransactionsUpdatedLast = nTransactionsUpdated;
         CBlockIndex* pindexPrev = pindexBest;
 
-        auto_ptr<CBlock> pblock(CreateNewBlock(pwallet, fProofOfStake, fProofOfStake ? ALGO_SCRYPT : miningAlgo));
+        auto_ptr<CBlock> pblock(CreateNewBlock(pwallet, fProofOfStake));
         if (!pblock.get())
             return;
         IncrementExtraNonce(pblock.get(), pindexPrev, nExtraNonce);
@@ -4757,7 +4958,6 @@ void FairCoinMiner(CWallet *pwallet, bool fProofOfStake)
         //
         int64 nStart = GetTime();
         uint256 hashTarget = CBigNum().SetCompact(pblock->nBits).getuint256();
-        uint256 result;
 
         loop
         {
@@ -4766,12 +4966,16 @@ void FairCoinMiner(CWallet *pwallet, bool fProofOfStake)
             uint256 thash;
             loop
             {
-                thash = pblock->GetPoWHash(miningAlgo);
+                thash = pblock->GetHash(ALGO_GROESTL);
                 if (thash <= hashTarget)
                 {
                     // Found a solution
                     if (!pblock->SignBlock(*pwalletMain))
                     	break;
+
+                    printf("\nversion: %d\nhash: %s\ntarget: %s\n",
+                            pblock->nVersion, thash.GetHex().c_str(),
+                            hashTarget.GetHex().c_str());
 
                     SetThreadPriority(THREAD_PRIORITY_NORMAL);
                     CheckWork(pblock.get(), *pwalletMain, reservekey);

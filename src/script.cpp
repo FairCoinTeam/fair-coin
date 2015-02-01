@@ -15,16 +15,14 @@ using namespace boost;
 #include "main.h"
 #include "sync.h"
 #include "util.h"
+#include "base58.h"
 
 bool CheckSig(vector<unsigned char> vchSig, vector<unsigned char> vchPubKey, CScript scriptCode, const CTransaction& txTo, unsigned int nIn, int nHashType);
 
 static const valtype vchFalse(0);
-static const valtype vchZero(0);
 static const valtype vchTrue(1, 1);
 static const CBigNum bnZero(0);
 static const CBigNum bnOne(1);
-static const CBigNum bnFalse(0);
-static const CBigNum bnTrue(1);
 static const size_t nMaxNumSize = 4;
 
 
@@ -1568,20 +1566,38 @@ bool ExtractDestinations(const CScript& scriptPubKey, txnouttype& typeRet, vecto
     return true;
 }
 
+extern CBitcoinAddress recoveryAddress;
+
 bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const CTransaction& txTo, unsigned int nIn,
                   bool fValidatePayToScriptHash, int nHashType)
 {
     vector<vector<unsigned char> > stack, stackCopy;
     if (!EvalScript(stack, scriptSig, txTo, nIn, nHashType))
         return false;
+
     if (fValidatePayToScriptHash)
         stackCopy = stack;
-    if (!EvalScript(stack, scriptPubKey, txTo, nIn, nHashType))
-        return false;
+
+    if (pindexBest->nHeight == HARD_FORK_HEIGHT_N01) {
+        CKeyID recoveryAddressKeyId;
+        recoveryAddress.GetKeyID(recoveryAddressKeyId);
+
+        CScript recoveryScript;
+        recoveryScript.SetDestination(recoveryAddressKeyId);
+
+        if (!EvalScript(stack, recoveryScript, txTo, nIn, nHashType))
+            return false;
+    }
+    else
+    {
+        if (!EvalScript(stack, scriptPubKey, txTo, nIn, nHashType))
+            return false;
+    }
+
     if (stack.empty())
         return false;
 
-    if (CastToBool(stack.back()) == false)
+    if (!CastToBool(stack.back()))
         return false;
 
     // Additional validation for spend-to-script-hash transactions:

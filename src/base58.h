@@ -276,8 +276,8 @@ class CBitcoinAddress : public CBase58Data
 public:
     enum
     {
-        PUBKEY_ADDRESS = 95,  // FairCoin: address begin with 'f'
-        SCRIPT_ADDRESS = 8, 
+        PUBKEY_ADDRESS = 95,  // FairCoin addresses start with 'f'
+        SCRIPT_ADDRESS = 36,  // FairCoin P2SH addresses start with 'F'
         PUBKEY_ADDRESS_TEST = 111,
         SCRIPT_ADDRESS_TEST = 196,
     };

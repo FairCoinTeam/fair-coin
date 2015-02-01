@@ -30,13 +30,10 @@ static const int DATABASE_VERSION = 70509;
 //
 // network protocol versioning
 //
-static const int PROTOCOL_VERSION = 90001;
+static const int PROTOCOL_VERSION = 90101;
 
 // clients with smaller version number are disconnected
-static const int MIN_PROTO_VERSION_HF1 = 90000;
-
-// clients with smaller version number are disconnected
-static const int MIN_PROTO_VERSION = 90001;
+static const int MIN_PROTO_VERSION = 90101;
 
 // nTime field added to CAddress, starting with this version;
 // if possible, avoid requesting addresses nodes older than this
