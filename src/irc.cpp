@@ -317,8 +317,8 @@ void ThreadIRCSeed2(void* parg)
 
             // Channel number is always 0 for initial release
             int channel_number = 0;
-            Send(hSocket, strprintf("JOIN #FairCoin%02d\r", channel_number).c_str());
-            Send(hSocket, strprintf("WHO #FairCoin%02d\r", channel_number).c_str());
+            Send(hSocket, strprintf("JOIN #FairCoinBETA%02d\r", channel_number).c_str());
+            Send(hSocket, strprintf("WHO #FairCoinBETA%02d\r", channel_number).c_str());
         }
 
         int64 nStart = GetTime();
