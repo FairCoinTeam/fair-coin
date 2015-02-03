@@ -33,7 +33,7 @@ irc=0
 Build instructions:
 
 ```
-git clone https://github.com/FairCoinTeam/fair-coin.git  
+git clone https://github.com/FairCoinTeam/fair-coin.git -b sha256-beta  
 cd fair-coin  
 ./autogen.sh  
 ./configure --prefix=/usr --disable-maintainer-mode --with-incompatible-bdb --disable-tests  
