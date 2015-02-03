@@ -1,4 +1,4 @@
-Name "@PACKAGE_NAME@ (@WINDOWS_BITS@-bit)"
+Name "@PACKAGE_NAME@ (@WINDOWS_BITS@-bit) - BETA"
 
 RequestExecutionLevel highest
 SetCompressor /SOLID lzma
@@ -50,9 +50,9 @@ Var StartMenuGroup
 # Installer attributes
 OutFile @abs_top_srcdir@/FairCoin-${VERSION}-win@WINDOWS_BITS@-setup.exe
 !if "@WINDOWS_BITS@" == "64"
-InstallDir $PROGRAMFILES64\FairCoin
+InstallDir $PROGRAMFILES64\FairCoin-Beta
 !else
-InstallDir $PROGRAMFILES\FairCoin
+InstallDir $PROGRAMFILES\FairCoin-Beta
 !endif
 CRCCheck on
 XPStyle on
