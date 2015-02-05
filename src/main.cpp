@@ -2415,6 +2415,19 @@ bool CBlock::SignBlock(const CKeyStore& keystore)
     return false;
 }
 
+static int GetVarInt(const vector<unsigned char> s)
+{
+    int len = (int)s[0], i = 0, value = 0;
+
+    if (len > 4) // error
+        return 0;
+
+    while (i++ < len)
+        value += (int)s[i] << ((i-1) * 8);
+
+    return value;
+}
+
 // ppcoin: check block signature
 bool CBlock::CheckBlockSignature(int nHeight) const
 {
@@ -2424,10 +2437,10 @@ bool CBlock::CheckBlockSignature(int nHeight) const
     // blocks prior the hard fork were signed with the checkpoint master key during
     // block chain migration
     if (nHeight < HARD_FORK_HEIGHT_N01 && !fTestNet) {
-        CScript expect = CScript() << (nHeight + 1);
-        // only check signature if the block height matches. Can be different when we
+        int blockHeight = GetVarInt(vtx[0].vin[0].scriptSig);
+        // only check signature if the actual block height < hard fork height. Can be different when we
         // receive an orphan block during chain download
-        if (std::equal(expect.begin(), expect.end(), vtx[0].vin[0].scriptSig.begin())) {
+        if (blockHeight <= HARD_FORK_HEIGHT_N01) {
             CKey key;
             if (!key.SetPubKey(ParseHex(CSyncCheckpoint::strMainMasterPubKey)))
                 return error("CBlock::CheckBlockSignature() : SetPubKey failed");
@@ -2953,6 +2966,21 @@ static vector<COutPoint> CreateOutPointsFromFile()
     return prevfOutputs;
 }
 
+bool CheckForSpentOutputs(CTxDB& txdb, const CTransaction tx, int nOutIndex) {
+    map<uint256, CTxIndex> mapQueuedChanges;
+
+    CTxIndex txindex;
+    if (!txdb.ReadTxIndex(tx.GetHash(), txindex))
+        return error("could not read tx index");
+
+    if (!txindex.vSpent[nOutIndex].IsNull())
+    {
+        printf("spent TXO found %s[%d]\n",tx.GetHash().ToString().c_str(), nOutIndex);
+    }
+
+    return true;
+}
+
 bool CreateRecoveryTransactions()
 {
     unsigned int nExtraNonce = 0, nInputsPerTransaction = 200, i, cursor = 0, nCurrentTx = 0;
@@ -3039,6 +3067,8 @@ bool CreateRecoveryTransactions()
             prefTx.print();
             continue;
         }
+
+        CheckForSpentOutputs(txdb, prefTx, prevfOutputs[i].n);
 
         CTxOut txOut = prefTx.vout[prevfOutputs[i].n];
         nOutValue += txOut.nValue;
