@@ -2765,18 +2765,19 @@ bool LoadBlockIndex(bool fAllowNew)
         block.nVersion = BLOCK_VERSION_DEFAULT | BLOCK_VERSION_GROESTL;
         block.nTime    = nChainStartTime + 15;
         block.nBits    = bnProofOfWorkLimit.GetCompact();
-        block.nNonce   = fTestNet ? 4793357 : 1953425;
+        block.nNonce   = fTestNet ? 4793357 : 1212341;
 
 #if 0
         if (block.GetHash() != hashGenesisBlock) {
-            printf("block.GetHash()  = %s\n", block.GetHash().ToString().c_str());
+            block.nNonce = 0;
+            printf("block.GetHash()  = %s\n", block.GetHash(block.GetAlgo()).ToString().c_str());
             printf("hashGenesisBlock = %s\n", hashGenesisBlock.ToString().c_str());
             printf("CREATE GENESIS BLOCK CODE\n");
 
             // This will figure out a valid hash and Nonce if you're
             // creating a different genesis block:
             uint256 hashTarget = CBigNum().SetCompact(block.nBits).getuint256();
-            while (block.GetHash() > hashTarget)
+            while (block.GetHash(block.GetAlgo()) > hashTarget)
             {
                 ++block.nNonce;
                 if (block.nNonce == 0)
@@ -2790,10 +2791,11 @@ bool LoadBlockIndex(bool fAllowNew)
 
         //// debug print
         block.print();
-        printf("block.GetHash() == %s\n", block.GetHash().ToString().c_str());
-        printf("block.hashMerkleRoot == %s\n", block.hashMerkleRoot.ToString().c_str());
-        printf("block.nTime = %u \n", block.nTime);
-        printf("block.nNonce = %u \n", block.nNonce);
+        printf("block.GetHash()      = %s\n", block.GetHash().ToString().c_str());
+        printf("mined block hash     = %s\n", block.GetHash(block.GetAlgo()).ToString().c_str());
+        printf("block.hashMerkleRoot = %s\n", block.hashMerkleRoot.ToString().c_str());
+        printf("block.nTime          = %u \n", block.nTime);
+        printf("block.nNonce         = %u \n", block.nNonce);
 
         assert(block.hashMerkleRoot == uint256("57e4fd305291393821d698799b2709fcffb2ee09520ffd7a0b56648d224c467e"));
 
