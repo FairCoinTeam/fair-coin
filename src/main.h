@@ -25,7 +25,7 @@ class CInv;
 class CRequestTracker;
 class CNode;
 
-static const int HARD_FORK_HEIGHT_N01 = 84728; // hard fork block height, this block resides in the old chain
+static const int HARD_FORK_HEIGHT_N01 = 87179; // hard fork block height, this block resides in the old chain
 
 static const unsigned int MAX_BLOCK_SIZE = 1000000;
 static const unsigned int MAX_BLOCK_SIZE_GEN = MAX_BLOCK_SIZE/2;
