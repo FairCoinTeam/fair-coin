@@ -82,7 +82,7 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     spinnerFrame(0)
 {
     resize(850, 550);
-    setWindowTitle(tr("FairCoin") + " - " + tr("Wallet"));
+    setWindowTitle(tr("FairCoin - SHA256-BETA") + " - " + tr("Wallet"));
 #ifndef Q_OS_MAC
     qApp->setWindowIcon(QIcon(":icons/faircoin"));
     setWindowIcon(QIcon(":icons/faircoin"));
