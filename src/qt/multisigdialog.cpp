@@ -47,8 +47,11 @@ MultisigDialog::MultisigDialog(QWidget *parent) : QDialog(parent), ui(new Ui::Mu
     ui->signTransactionButton->setEnabled(false);
     ui->sendTransactionButton->setEnabled(false);
 
+#if QT_VERSION >= 0x040700
+    /* Do not move this to the XML file, Qt before 4.7 will choke on it */
     ui->requiredSignatures->setPlaceholderText(tr("Enter a number"));
     ui->transaction->setPlaceholderText(tr("Enter a raw transaction or create a new one"));
+#endif
 }
 
 MultisigDialog::~MultisigDialog()
