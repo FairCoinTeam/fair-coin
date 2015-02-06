@@ -16,6 +16,9 @@
 MultisigInputEntry::MultisigInputEntry(QWidget *parent) : QFrame(parent), ui(new Ui::MultisigInputEntry), model(0)
 {
     ui->setupUi(this);
+
+    ui->transactionId->setPlaceholderText(tr("Enter a transaction id"));
+    ui->redeemScript->setPlaceholderText(tr("Enter the redeem script of the address in the transaction output"));
 }
 
 MultisigInputEntry::~MultisigInputEntry()

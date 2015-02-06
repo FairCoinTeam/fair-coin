@@ -17,6 +17,9 @@ MultisigAddressEntry::MultisigAddressEntry(QWidget *parent) : QFrame(parent), ui
 {
     ui->setupUi(this);
     GUIUtil::setupAddressWidget(ui->address, this);
+
+    ui->pubkey->setPlaceholderText(tr("The public key of an address"));
+    ui->address->setPlaceholderText(tr("Enter one of your addresses to get its public key"));
 }
 
 MultisigAddressEntry::~MultisigAddressEntry()

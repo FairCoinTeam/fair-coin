@@ -46,6 +46,9 @@ MultisigDialog::MultisigDialog(QWidget *parent) : QDialog(parent), ui(new Ui::Mu
 
     ui->signTransactionButton->setEnabled(false);
     ui->sendTransactionButton->setEnabled(false);
+
+    ui->requiredSignatures->setPlaceholderText(tr("Enter a number"));
+    ui->transaction->setPlaceholderText(tr("Enter a raw transaction or create a new one"));
 }
 
 MultisigDialog::~MultisigDialog()
