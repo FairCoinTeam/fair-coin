@@ -1,9 +1,3 @@
-#include <QClipboard>
-#include <QDialog>
-#include <QMessageBox>
-#include <QScrollBar>
-#include <vector>
-
 #include "addresstablemodel.h"
 #include "base58.h"
 #include "key.h"
@@ -19,6 +13,11 @@
 #include "wallet.h"
 #include "walletmodel.h"
 
+#include <QClipboard>
+#include <QDialog>
+#include <QMessageBox>
+#include <QScrollBar>
+#include <vector>
 
 MultisigDialog::MultisigDialog(QWidget *parent) : QDialog(parent), ui(new Ui::MultisigDialog), model(0)
 {
@@ -41,7 +40,6 @@ MultisigDialog::MultisigDialog(QWidget *parent) : QDialog(parent), ui(new Ui::Mu
 
     addInput();
     addOutput();
-    updateAmounts();
 
     connect(ui->addInputButton, SIGNAL(clicked()), this, SLOT(addInput()));
     connect(ui->addOutputButton, SIGNAL(clicked()), this, SLOT(addOutput()));
@@ -81,6 +79,8 @@ void MultisigDialog::setModel(WalletModel *model)
         if(entry)
             entry->setModel(model);
     }
+
+    updateAmounts();
 }
 
 void MultisigDialog::updateRemoveEnabled()
