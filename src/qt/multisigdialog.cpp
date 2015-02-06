@@ -1,4 +1,5 @@
 #include "addresstablemodel.h"
+#include "ui_multisigdialog.h"
 #include "base58.h"
 #include "key.h"
 #include "main.h"
@@ -6,7 +7,6 @@
 #include "multisigaddressentry.h"
 #include "multisiginputentry.h"
 #include "multisigdialog.h"
-#include "ui_multisigdialog.h"
 #include "script.h"
 #include "sendcoinsentry.h"
 #include "util.h"
