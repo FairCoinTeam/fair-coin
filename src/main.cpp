@@ -3367,7 +3367,12 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
         CAddress addrMe;
         CAddress addrFrom;
         uint64 nNonce = 1;
-        vRecv >> pfrom->nVersion >> pfrom->nServices >> nTime >> addrMe;
+        vRecv >> pfrom->nVersion >> pfrom->nServices >> nTime;
+
+        if (pfrom->nVersion == V120_PROTO_VERSION) // we compatible with old clients, so the log file won't get trahsed
+            vRecv.SetVersion(V120_PROTO_VERSION);
+
+        vRecv >> addrMe;
         if (pfrom->nVersion < MIN_PROTO_VERSION)
         {
             // Disconnect old wallets
