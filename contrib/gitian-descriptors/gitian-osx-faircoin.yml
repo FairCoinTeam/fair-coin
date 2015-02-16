@@ -31,7 +31,7 @@ script: |
 
   mkdir osx-cross-depends
   tar -C osx-cross-depends -xf osx-native-depends-r2.tar.gz
-  tar -C osx-cross-depends -xf osx-depends-r2.tar.gz
+  tar -C osx-cross-depends -xf osx-depends-r3.tar.gz
   tar -C osx-cross-depends -xf osx-depends-qt-5.2.1-r2.tar.gz
   export PATH=`pwd`/osx-cross-depends/native-prefix/bin:$PATH
 

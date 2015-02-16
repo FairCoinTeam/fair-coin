@@ -25,7 +25,7 @@ class CInv;
 class CRequestTracker;
 class CNode;
 
-static const int HARD_FORK_HEIGHT_N01 = 87179; // hard fork block height, this block resides in the old chain
+static const int HARD_FORK_HEIGHT_N01 = 94613; // hard fork block height, this block resides in the old chain
 
 static const unsigned int MAX_BLOCK_SIZE = 1000000;
 static const unsigned int MAX_BLOCK_SIZE_GEN = MAX_BLOCK_SIZE/2;
@@ -48,8 +48,8 @@ static const int fHaveUPnP = true;
 static const int fHaveUPnP = false;
 #endif
 
-static const uint256 hashGenesisBlockOfficial("000004a7a7a0ed1b00c1f56b2ce16ac8dc74b3e0830bd386bd3bc1ff51f596b7");
-static const uint256 hashGenesisBlockTestNet ("0000020cd58f917e33f0936ba299bed019ea69e5fcde0af1220f0d6663040fa7");
+static const uint256 hashGenesisBlockOfficial("cab42ddd9d6cc5a2df3c53ec301ab615c6cd56e023a52bc3751d4817683fec55");
+static const uint256 hashGenesisBlockTestNet ("7e5e6a6591dfd112a1a43014404751aae6b3db1bc804bc43a0a4f9f1f95dbf80");
 
 static const int64 nMaxClockDrift = 2 * 60 * 60;        // two hours
 
