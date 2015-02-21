@@ -2197,12 +2197,12 @@ void CWallet::ClearOrphans()
     list<uint256> orphans;
 
     LOCK(cs_wallet);
-    for(map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it)
+    for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it)
     {
         const CWalletTx *wtx = &(*it).second;
-        if(!wtx->IsInMainChain())
+        if ((wtx->IsCoinBase() || wtx->IsCoinStake()) && !wtx->IsInMainChain())
         {
-          orphans.push_back(wtx->GetHash());
+            orphans.push_back(wtx->GetHash());
         }
     }
 
