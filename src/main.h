@@ -51,6 +51,10 @@ static const int fHaveUPnP = false;
 static const uint256 hashGenesisBlockOfficial("cab42ddd9d6cc5a2df3c53ec301ab615c6cd56e023a52bc3751d4817683fec55");
 static const uint256 hashGenesisBlockTestNet ("7e5e6a6591dfd112a1a43014404751aae6b3db1bc804bc43a0a4f9f1f95dbf80");
 
+// the sha256 hash of the old genesis block
+static const uint256 hashOldGenesisBlockOfficial("02324da28f3830a20d47b91f6a7222f2e24fd07b3be76f572ccb6de8a20811b4");
+
+
 static const int64 nMaxClockDrift = 2 * 60 * 60;        // two hours
 
 extern CScript COINBASE_FLAGS;
@@ -100,7 +104,7 @@ bool ProcessBlock(CNode* pfrom, CBlock* pblock);
 bool CheckDiskSpace(uint64 nAdditionalBytes=0);
 FILE* OpenBlockFile(unsigned int nFile, unsigned int nBlockPos, const char* pszMode="rb");
 FILE* AppendBlockFile(unsigned int& nFileRet);
-bool LoadBlockIndex(bool fAllowNew=true);
+int LoadBlockIndex(bool fAllowNew=true);
 void PrintBlockTree();
 CBlockIndex* FindBlockByHeight(int nHeight);
 bool ProcessMessages(CNode* pfrom);

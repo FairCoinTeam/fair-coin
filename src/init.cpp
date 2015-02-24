@@ -661,8 +661,18 @@ bool AppInit2()
     uiInterface.InitMessage(_("Loading block index..."));
     printf("Loading block index...\n");
     nStart = GetTimeMillis();
-    if (!LoadBlockIndex())
+    int res = LoadBlockIndex();
+    if (res == LOAD_BLOCK_INDEX_ERROR)
+    {
         return InitError(_("Error loading blkindex.dat"));
+    }
+    else if (res == LOAD_BLOCK_INDEX_OLD_CHAIN)
+    {
+        string msg = strprintf(_("Old block chain data detected in directory %s  "
+                                 "Please delete the file 'blk0001.dat' and the folder 'txleveldb' "
+                                 "and restart your wallet."), strDataDir.c_str());
+        return InitError(msg);
+    }
 
     // as LoadBlockIndex can take several minutes, it's possible the user
     // requested to kill bitcoin-qt during the last operation. If so, exit.

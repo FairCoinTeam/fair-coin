@@ -15,6 +15,13 @@
 #include <leveldb/db.h>
 #include <leveldb/write_batch.h>
 
+enum
+{
+    LOAD_BLOCK_INDEX_ERROR = 0,
+    LOAD_BLOCK_INDEX_OK  = 1,
+    LOAD_BLOCK_INDEX_OLD_CHAIN = 2
+};
+
 // Class that provides access to a LevelDB. Note that this class is frequently
 // instantiated on the stack and then destroyed again, so instantiation has to
 // be very cheap. Unfortunately that means, a CTxDB instance is actually just a
@@ -201,7 +208,7 @@ public:
     bool WriteSyncCheckpoint(uint256 hashCheckpoint);
     bool ReadCheckpointPubKey(std::string& strPubKey);
     bool WriteCheckpointPubKey(const std::string& strPubKey);
-    bool LoadBlockIndex();
+    int LoadBlockIndex();
 private:
     bool LoadBlockIndexGuts();
 };

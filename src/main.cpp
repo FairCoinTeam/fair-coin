@@ -2711,7 +2711,7 @@ FILE* AppendBlockFile(unsigned int& nFileRet)
     return NULL;
 }
 
-bool LoadBlockIndex(bool fAllowNew)
+int LoadBlockIndex(bool fAllowNew)
 {
     if (fTestNet)
     {
@@ -2732,8 +2732,9 @@ bool LoadBlockIndex(bool fAllowNew)
     // Load block index
     //
     CTxDB txdb("cr");
-    if (!txdb.LoadBlockIndex())
-        return false;
+    int res = txdb.LoadBlockIndex();
+    if (res != LOAD_BLOCK_INDEX_OK)
+        return res;
 
     //
     // Init with genesis block
@@ -2957,7 +2958,7 @@ static vector<COutPoint> CreateOutPointsFromFile()
         std::string col;
         vector<string> cols;
 
-        while(getline(lineStream,col,':'))
+        while (getline(lineStream,col,':'))
         {
             cols.push_back(col);
         }
@@ -3028,7 +3029,7 @@ bool CreateRecoveryTransactions()
     CTransaction txNew;
     int64 nOutValue = 0, nOutputs = prevfOutputs.size();
 
-    // iterate over the outputs list and store them in 20 transactions each
+    // iterate over the outputs list and store them in transactions each
     // containing 200 (nInputsPerTransaction) outputs (UTXOs)
     unsigned int nInputs = nInputsPerTransaction;
     for (i = 0 ; i <= nOutputs ; i++) {

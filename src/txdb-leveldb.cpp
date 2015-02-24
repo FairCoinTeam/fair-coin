@@ -317,12 +317,12 @@ static CBlockIndex *InsertBlockIndex(uint256 hash)
     return pindexNew;
 }
 
-bool CTxDB::LoadBlockIndex()
+int CTxDB::LoadBlockIndex()
 {
     if (mapBlockIndex.size() > 0) {
         // Already loaded once in this session. It can happen during migration
         // from BDB.
-        return true;
+        return LOAD_BLOCK_INDEX_OK;
     }
     // The block index is an in-memory structure that maps hashes to on-disk
     // locations where the contents of the block can be found. Here, we scan it
@@ -350,6 +350,9 @@ bool CTxDB::LoadBlockIndex()
         ssValue >> diskindex;
 
         uint256 blockHash = diskindex.GetBlockHash();
+
+        if (blockHash == hashOldGenesisBlockOfficial)
+            return LOAD_BLOCK_INDEX_OLD_CHAIN;
 
         // Construct block index object
         CBlockIndex* pindexNew      = InsertBlockIndex(blockHash);
