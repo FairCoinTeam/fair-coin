@@ -29,7 +29,6 @@ public:
         DisplayUnit,       // BitcoinUnits::Unit
         DisplayAddresses,  // bool
         CoinControlFeatures,  // bool
-        DetachDatabases,   // bool
         Language,          // QString
         OptionIDRowCount,
     };

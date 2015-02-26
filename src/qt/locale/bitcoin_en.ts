@@ -2530,8 +2530,8 @@ Address: %4
     </message>
     <message>
         <location line="-127"/>
-        <source>Acceptable ciphers (default: TLSv1+HIGH:!SSLv2:!aNULL:!eNULL:!AH:!3DES:@STRENGTH)</source>
-        <translation>Acceptable ciphers (default: TLSv1+HIGH:!SSLv2:!aNULL:!eNULL:!AH:!3DES:@STRENGTH)</translation>
+        <source>Acceptable ciphers (default: TLSv1+HIGH:!SSLv2:!SSLv3:!aNULL:!eNULL:!AH:!3DES:@STRENGTH)</source>
+        <translation>Acceptable ciphers (default: TLSv1+HIGH:!SSLv2:!SSLv3:!aNULL:!eNULL:!AH:!3DES:@STRENGTH)</translation>
     </message>
     <message>
         <location line="+139"/>
@@ -2708,7 +2708,7 @@ Address: %4
         <source>%s, you must set a rpcpassword in the configuration file:
  %s
 It is recommended you use the following random password:
-rpcuser=bitcoinrpc
+rpcuser=faircoinrpc
 rpcpassword=%s
 (you do not need to remember this password)
 If the file does not exist, create it with owner-readable-only file permissions.
@@ -2716,7 +2716,7 @@ If the file does not exist, create it with owner-readable-only file permissions.
         <translation>%s, you must set a rpcpassword in the configuration file:
  %s
 It is recommended you use the following random password:
-rpcuser=bitcoinrpc
+rpcuser=faircoinrpc
 rpcpassword=%s
 (you do not need to remember this password)
 If the file does not exist, create it with owner-readable-only file permissions.

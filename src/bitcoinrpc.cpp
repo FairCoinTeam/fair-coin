@@ -9,7 +9,7 @@
 #include "ui_interface.h"
 #include "base58.h"
 #include "bitcoinrpc.h"
-#include "dbx.h"
+#include "db.h"
 
 #undef printf
 #include <boost/asio.hpp>
@@ -189,8 +189,6 @@ Value stop(const Array& params, bool fHelp)
             "<detach> is true or false to detach the database or not for this stop only\n"
             "Stop FairCoin server (and possibly override the detachdb config value).");
     // Shutdown will take long enough that the response should get back
-    if (params.size() > 0)
-        bitdb.SetDetach(params[0].get_bool());
     StartShutdown();
     return "FairCoin server stopping";
 }
@@ -752,7 +750,7 @@ void ThreadRPCServer2(void* parg)
         uiInterface.ThreadSafeMessageBox(strprintf(
             _("%s, you must set a rpcpassword in the configuration file:\n %s\n"
               "It is recommended you use the following random password:\n"
-              "rpcuser=bitcoinrpc\n"
+              "rpcuser=faircoinrpc\n"
               "rpcpassword=%s\n"
               "(you do not need to remember this password)\n"
               "If the file does not exist, create it with owner-readable-only file permissions.\n"),
@@ -771,7 +769,7 @@ void ThreadRPCServer2(void* parg)
     ssl::context context(io_service, ssl::context::sslv23);
     if (fUseSSL)
     {
-        context.set_options(ssl::context::no_sslv2);
+        context.set_options(ssl::context::no_sslv2 | ssl::context::no_sslv3);
 
         filesystem::path pathCertFile(GetArg("-rpcsslcertificatechainfile", "server.cert"));
         if (!pathCertFile.is_complete()) pathCertFile = filesystem::path(GetDataDir()) / pathCertFile;
@@ -783,7 +781,7 @@ void ThreadRPCServer2(void* parg)
         if (filesystem::exists(pathPKFile)) context.use_private_key_file(pathPKFile.string(), ssl::context::pem);
         else printf("ThreadRPCServer ERROR: missing server private key file %s\n", pathPKFile.string().c_str());
 
-        string strCiphers = GetArg("-rpcsslciphers", "TLSv1+HIGH:!SSLv2:!aNULL:!eNULL:!AH:!3DES:@STRENGTH");
+        string strCiphers = GetArg("-rpcsslciphers", "TLSv1+HIGH:!SSLv2:!SSLv3:!aNULL:!eNULL:!AH:!3DES:@STRENGTH");
         SSL_CTX_set_cipher_list(context.impl(), strCiphers.c_str());
     }
 
@@ -979,7 +977,7 @@ void ThreadRPCServer3(void* parg)
                If this results in a DOS the user really
                shouldn't have their RPC port exposed.*/
             if (mapArgs["-rpcpassword"].size() < 20)
-                Sleep(250);
+                MilliSleep(250);
 
             conn->stream() << HTTPReply(HTTP_UNAUTHORIZED, "", false) << std::flush;
             break;
@@ -1079,7 +1077,7 @@ Object CallRPC(const string& strMethod, const Array& params)
     bool fUseSSL = GetBoolArg("-rpcssl");
     asio::io_service io_service;
     ssl::context context(io_service, ssl::context::sslv23);
-    context.set_options(ssl::context::no_sslv2);
+    context.set_options(ssl::context::no_sslv2| ssl::context::no_sslv3);
     asio::ssl::stream<asio::ip::tcp::socket> sslStream(io_service, context);
     SSLIOStreamDevice<asio::ip::tcp> d(sslStream, fUseSSL);
     iostreams::stream< SSLIOStreamDevice<asio::ip::tcp> > stream(d);

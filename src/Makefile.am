@@ -24,9 +24,6 @@ LIBBITCOIN_SERVER=libbitcoin_server.a
 LIBBITCOIN_WALLET=libbitcoin_wallet.a
 LIBBITCOIN_COMMON=libbitcoin_common.a
 LIBBITCOIN_UTIL=libbitcoin_util.a
-if HAVE_SSE2
-LIBBITCOIN_SSE2=libbitcoin_sse2.a
-endif
 
 LIBBITCOINQT=qt/libbitcoinqt.a
 
@@ -37,10 +34,6 @@ noinst_LIBRARIES = \
 if ENABLE_WALLET
 BITCOIN_INCLUDES += $(BDB_CPPFLAGS)
 noinst_LIBRARIES += libbitcoin_wallet.a
-endif
-
-if HAVE_SSE2
-noinst_LIBRARIES += libbitcoin_sse2.a
 endif
 
 bin_PROGRAMS =
@@ -57,6 +50,7 @@ BITCOIN_CORE_H = \
   alert.h \
   allocators.h \
   base58.h \
+  bloom.h \
   bignum.h \
   bitcoinrpc.h \
   checkpoints.h \
@@ -67,7 +61,10 @@ BITCOIN_CORE_H = \
   sph_groestl.h \
   sph_types.h \
   hashgroestl.h \
-  dbx.h \
+  db.h \
+  hash.h \
+  txdb.h \
+  txdb-leveldb.h \
   init.h \
   irc.h \
   kernel.h \
@@ -79,7 +76,6 @@ BITCOIN_CORE_H = \
   net.h \
   protocol.h \
   script.h \
-  scrypt.h \
   serialize.h \
   strlcpy.h \
   sync.h \
@@ -112,9 +108,12 @@ libbitcoin_server_a_CPPFLAGS = $(BITCOIN_INCLUDES)
 libbitcoin_server_a_SOURCES = \
   addrman.cpp \
   alert.cpp \
+  bloom.cpp \
   checkpoints.cpp \
   init.cpp \
   irc.cpp \
+  db.cpp \
+  txdb-leveldb.cpp \
   bitcoinrpc.cpp \
   keystore.cpp \
   main.cpp \
@@ -131,7 +130,6 @@ libbitcoin_server_a_SOURCES = \
 # when wallet enabled
 libbitcoin_wallet_a_CPPFLAGS = $(BITCOIN_INCLUDES)
 libbitcoin_wallet_a_SOURCES = \
-  db.cpp \
   crypter.cpp \
   rpcdump.cpp \
   rpcwallet.cpp \
@@ -146,8 +144,8 @@ libbitcoin_common_a_SOURCES = \
   netbase.cpp \
   protocol.cpp \
   script.cpp \
+  hash.cpp \
   kernel.cpp \
-  scrypt.cpp \
   groestl.c \
   sync.cpp \
   $(BITCOIN_CORE_H)
@@ -177,12 +175,6 @@ FairCoind_LDADD = \
   $(LIBBITCOIN_UTIL) \
   $(LIBLEVELDB) \
   $(LIBMEMENV)
-
-if HAVE_SSE2
-libbitcoin_sse2_a_SOURCES = scrypt-sse2.cpp
-libbitcoin_sse2_a_CPPFLAGS = $(BITCOIN_INCLUDES) -msse2 -mstackrealign
-FairCoind_LDADD += libbitcoin_sse2.a
-endif
 
 if ENABLE_WALLET
 FairCoind_LDADD += libbitcoin_wallet.a

@@ -74,10 +74,7 @@ Object blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool fPri
     result.push_back(Pair("size", (int)::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION)));
     result.push_back(Pair("height", blockindex->nHeight));
     result.push_back(Pair("version", block.nVersion));
-    int algo = block.GetAlgo();
-    result.push_back(Pair("algo_id", algo));
-    result.push_back(Pair("algo", GetAlgoName(algo)));
-    result.push_back(Pair("mined_hash", block.GetPoWHash(algo).GetHex()));
+    result.push_back(Pair("mined_hash", block.GetHash(block.IsProofOfStake() ? ALGO_SHA256D : ALGO_GROESTL).GetHex()));
     result.push_back(Pair("merkleroot", block.hashMerkleRoot.GetHex()));
     result.push_back(Pair("mint", ValueFromAmount(blockindex->nMint)));
     result.push_back(Pair("time", (boost::int64_t)block.GetBlockTime()));
@@ -128,7 +125,7 @@ Value getblockcount(const Array& params, bool fHelp)
     return nBestHeight;
 }
 
-unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfStake, int algo);
+unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfStake);
 
 static const CBlockIndex* GetLastBlockIndex4Algo(const CBlockIndex* pindex, int algo)
 {
@@ -140,7 +137,7 @@ static const CBlockIndex* GetLastBlockIndex4Algo(const CBlockIndex* pindex, int 
 static void createPairs4Algo(Object *obj, int algo, bool fAppendAlgoName=false)
 {
     const CBlockIndex* lastPoW = GetLastBlockIndex4Algo(pindexBest, algo);
-    unsigned int nextPoW = GetNextTargetRequired(pindexBest, false, algo);
+    unsigned int nextPoW = GetNextTargetRequired(pindexBest, false);
 
     string algoName = fAppendAlgoName ? ("-" + GetAlgoName(algo)) : "";
 
@@ -153,20 +150,16 @@ Value getdifficulty(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() > 1)
         throw runtime_error(
-            "getdifficulty [all]\n"
-            "Returns the difficulty as a multiple of the minimum difficulty for the current mining algo or if parameter all is given all algos.");
+            "getdifficulty\n"
+            "Returns the difficulty as a multiple of the minimum difficulty.");
 
     Object obj;
 
-    if (params.size() > 0 && params[0].get_str() == "all") {
-    	for (int i = 0 ; i < NUM_ALGOS ; i++) {
-    		createPairs4Algo(&obj, i, true);
-    	}
-    } else
-    	createPairs4Algo(&obj, miningAlgo);
+    //proof-of-work (groestl)
+    createPairs4Algo(&obj, ALGO_GROESTL);
 
     const CBlockIndex* lastPoS = GetLastBlockIndex(pindexBest, true);
-    unsigned int nextPoS = GetNextTargetRequired(pindexBest, true, ALGO_SCRYPT);
+    unsigned int nextPoS = GetNextTargetRequired(pindexBest, true);
 
     obj.push_back(Pair("proof-of-stake",			GetDifficultyFromBits(lastPoS->nBits)));
     obj.push_back(Pair("proof-of-stake-next",		GetDifficultyFromBits(nextPoS)));

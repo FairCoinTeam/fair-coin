@@ -3,6 +3,7 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "txdb.h"
 #include "wallet.h"
 #include "walletdb.h"
 #include "crypter.h"
@@ -884,7 +885,7 @@ void CWalletTx::RelayWalletTransaction(CTxDB& txdb)
         {
             uint256 hash = tx.GetHash();
             if (!txdb.ContainsTx(hash))
-                RelayMessage(CInv(MSG_TX, hash), (CTransaction)tx);
+                RelayTransaction((CTransaction)tx, tx.GetHash());
         }
     }
     if (!(IsCoinBase() || IsCoinStake()))
@@ -893,7 +894,7 @@ void CWalletTx::RelayWalletTransaction(CTxDB& txdb)
         if (!txdb.ContainsTx(hash))
         {
             printf("Relaying wtx %s\n", hash.ToString().substr(0,10).c_str());
-            RelayMessage(CInv(MSG_TX, hash), (CTransaction)*this);
+            RelayTransaction((CTransaction)*this, hash);
         }
     }
 }
@@ -920,6 +921,7 @@ void CWallet::ResendWalletTransactions()
     static int64 nLastTime;
     if (nTimeBestReceived < nLastTime)
         return;
+
     nLastTime = GetTime();
 
     // Rebroadcast any of our txes that aren't in a block yet
@@ -1530,13 +1532,9 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
         // Set output amount
         if (txNew.vout.size() == 3)
         {
-			if( GetLastBlockIndex(pindexBest, false)->nHeight > 14200 ) // Fix rounded
-				txNew.vout[1].nValue = ((nCredit - nMinFee) / 2 );
-			else
-				txNew.vout[1].nValue = ((nCredit - nMinFee) / 2 / CENT ) * CENT;
-
-				txNew.vout[2].nValue = nCredit - nMinFee - txNew.vout[1].nValue;
-        	}
+			txNew.vout[1].nValue = ((nCredit - nMinFee) / 2 / CENT ) * CENT;
+			txNew.vout[2].nValue = nCredit - nMinFee - txNew.vout[1].nValue;
+        }
         else
             txNew.vout[1].nValue = nCredit - nMinFee;
 
@@ -2199,12 +2197,12 @@ void CWallet::ClearOrphans()
     list<uint256> orphans;
 
     LOCK(cs_wallet);
-    for(map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it)
+    for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it)
     {
         const CWalletTx *wtx = &(*it).second;
-        if((wtx->IsCoinBase() || wtx->IsCoinStake()) && !wtx->IsInMainChain())
+        if ((wtx->IsCoinBase() || wtx->IsCoinStake()) && !wtx->IsInMainChain())
         {
-          orphans.push_back(wtx->GetHash());
+            orphans.push_back(wtx->GetHash());
         }
     }
 

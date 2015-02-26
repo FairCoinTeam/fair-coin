@@ -80,8 +80,6 @@ Value getinfo(const Array& params, bool fHelp)
     obj.push_back(Pair("moneysupply",   ValueFromAmount(pindexBest->nMoneySupply)));
     obj.push_back(Pair("connections",   (int)vNodes.size()));
     obj.push_back(Pair("proxy",         (proxy.first.IsValid() ? proxy.first.ToStringIPPort() : string())));
-    obj.push_back(Pair("pow_algo_id",   miningAlgo));
-    obj.push_back(Pair("pow_algo",      GetAlgoName(miningAlgo)));
     obj.push_back(Pair("ip",            addrSeenByPeer.ToStringIP()));
     obj.push_back(Pair("difficulty",    (double)GetDifficulty(GetLastBlockIndex(pindexBest, true))));
     obj.push_back(Pair("testnet",       fTestNet));
@@ -781,7 +779,7 @@ Value addmultisigaddress(const Array& params, bool fHelp)
         throw runtime_error(
             strprintf("not enough keys supplied "
                       "(got %"PRIszu" keys, but need at least %d to redeem)", keys.size(), nRequired));
-    std::vector<CKey> pubkeys;
+    std::vector<CPubKey> pubkeys;
     pubkeys.resize(keys.size());
     for (unsigned int i = 0; i < keys.size(); i++)
     {
@@ -799,16 +797,18 @@ Value addmultisigaddress(const Array& params, bool fHelp)
             if (!pwalletMain->GetPubKey(keyID, vchPubKey))
                 throw runtime_error(
                     strprintf("no full public key for address %s",ks.c_str()));
-            if (!vchPubKey.IsValid() || !pubkeys[i].SetPubKey(vchPubKey))
+            if (!vchPubKey.IsFullyValid())
                 throw runtime_error(" Invalid public key: "+ks);
+            pubkeys[i] = vchPubKey;
         }
 
         // Case 2: hex public key
         else if (IsHex(ks))
         {
             CPubKey vchPubKey(ParseHex(ks));
-            if (!vchPubKey.IsValid() || !pubkeys[i].SetPubKey(vchPubKey))
+            if (!vchPubKey.IsFullyValid())
                 throw runtime_error(" Invalid public key: "+ks);
+            pubkeys[i] = vchPubKey;
         }
         else
         {
@@ -1362,7 +1362,7 @@ void ThreadCleanWalletPassphrase(void* parg)
                 break;
 
             LEAVE_CRITICAL_SECTION(cs_nWalletUnlockTime);
-            Sleep(nToSleep);
+            MilliSleep(nToSleep);
             ENTER_CRITICAL_SECTION(cs_nWalletUnlockTime);
 
         } while(1);

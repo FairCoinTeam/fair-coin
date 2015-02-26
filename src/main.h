@@ -9,7 +9,6 @@
 #include "sync.h"
 #include "net.h"
 #include "script.h"
-#include "scrypt.h"
 #include "hashgroestl.h"
 
 #include <list>
@@ -26,8 +25,7 @@ class CInv;
 class CRequestTracker;
 class CNode;
 
-static const int HARD_FORK_HEIGHT_N01 = 15555; // hard fork at block 15555
-static const int HARD_FORK_HEIGHT_N02 = 15680; // hard fork at block 15680
+static const int HARD_FORK_HEIGHT_N01 = 94613; // hard fork block height, this block resides in the old chain
 
 static const unsigned int MAX_BLOCK_SIZE = 1000000;
 static const unsigned int MAX_BLOCK_SIZE_GEN = MAX_BLOCK_SIZE/2;
@@ -36,7 +34,7 @@ static const unsigned int MAX_ORPHAN_TRANSACTIONS = MAX_BLOCK_SIZE/100;
 static const unsigned int MAX_INV_SZ = 50000;
 static const int64 MIN_TX_FEE = 0.1 * CENT;
 static const int64 MIN_RELAY_TX_FEE = 0.1 * CENT;
-static const int64 MAX_MONEY = 10000000000 * COIN; // 50,000,000 initial coins, no effecive limit
+static const int64 MAX_MONEY = 10000000000 * COIN; // 50,000,000 initial coins, no effective limit
 
 static const int64 MIN_TXOUT_AMOUNT = MIN_TX_FEE;
 
@@ -50,8 +48,12 @@ static const int fHaveUPnP = true;
 static const int fHaveUPnP = false;
 #endif
 
-static const uint256 hashGenesisBlockOfficial("0000040517463c65dbd1b52aabce3d50c40a0bdb500cea451cf21ef7138cc2ac");
-static const uint256 hashGenesisBlockTestNet ("000009d99fe04d03efebaf1ab5be9cb6ef0cca832a1cbcc854c2aae2f97e54de");
+static const uint256 hashGenesisBlockOfficial("cab42ddd9d6cc5a2df3c53ec301ab615c6cd56e023a52bc3751d4817683fec55");
+static const uint256 hashGenesisBlockTestNet ("7e5e6a6591dfd112a1a43014404751aae6b3db1bc804bc43a0a4f9f1f95dbf80");
+
+// the sha256 hash of the old genesis block
+static const uint256 hashOldGenesisBlockOfficial("02324da28f3830a20d47b91f6a7222f2e24fd07b3be76f572ccb6de8a20811b4");
+
 
 static const int64 nMaxClockDrift = 2 * 60 * 60;        // two hours
 
@@ -87,8 +89,6 @@ extern std::map<uint256, CBlock*> mapOrphanBlocks;
 // Settings
 extern int64 nTransactionFee;
 
-extern int miningAlgo;
-
 // Minimum disk space required - used in CheckDiskSpace()
 static const uint64 nMinDiskSpace = 52428800;
 
@@ -104,18 +104,19 @@ bool ProcessBlock(CNode* pfrom, CBlock* pblock);
 bool CheckDiskSpace(uint64 nAdditionalBytes=0);
 FILE* OpenBlockFile(unsigned int nFile, unsigned int nBlockPos, const char* pszMode="rb");
 FILE* AppendBlockFile(unsigned int& nFileRet);
-bool LoadBlockIndex(bool fAllowNew=true);
+int LoadBlockIndex(bool fAllowNew=true);
 void PrintBlockTree();
 CBlockIndex* FindBlockByHeight(int nHeight);
 bool ProcessMessages(CNode* pfrom);
 bool SendMessages(CNode* pto, bool fSendTrickle);
 bool LoadExternalBlockFile(FILE* fileIn);
+bool CreateRecoveryTransactions();
 void GenerateBitcoins(bool fGenerate, CWallet* pwallet);
-CBlock* CreateNewBlock(CWallet* pwallet, bool fProofOfStake, int algo);
+CBlock* CreateNewBlock(CWallet* pwallet, bool fProofOfStake);
 void IncrementExtraNonce(CBlock* pblock, CBlockIndex* pindexPrev, unsigned int& nExtraNonce);
 void FormatHashBuffers(CBlock* pblock, char* pmidstate, char* pdata, char* phash1);
 bool CheckWork(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey);
-bool CheckProofOfWork(uint256 hash, unsigned int nBits, int algo);
+bool CheckProofOfWork(uint256 hash, unsigned int nBits);
 int64 GetProofOfWorkReward(int nHeight);
 int64 GetProofOfStakeReward(int64 nCoinAge, unsigned int nBits, unsigned int nTime);
 unsigned int ComputeMinWork(unsigned int nBase, int64 nTime);
@@ -130,13 +131,12 @@ void ResendWalletTransactions();
 
 enum
 {
-    ALGO_SCRYPT  = 0,
+    ALGO_SHA256D  = 0,
     ALGO_GROESTL = 1,
-    ALGO_SHA256D = 2,
     NUM_ALGOS
 };
 
-extern CBigNum bnProofOfWorkLimit[NUM_ALGOS];
+extern CBigNum bnProofOfWorkLimit;
 
 enum
 {
@@ -145,35 +145,30 @@ enum
 
     // algo
     BLOCK_VERSION_ALGO           = (7 << 9),
-    BLOCK_VERSION_SCRYPT         = (0 << 9),
-    BLOCK_VERSION_GROESTL        = (1 << 9),
-    BLOCK_VERSION_SHA256D        = (2 << 9)
+    BLOCK_VERSION_SHA256D        = (0 << 9),
+    BLOCK_VERSION_GROESTL        = (1 << 9)
 };
 
 inline int GetAlgo(int nVersion)
 {
     switch (nVersion & BLOCK_VERSION_ALGO)
     {
-        case BLOCK_VERSION_SCRYPT:
-            return ALGO_SCRYPT;
-        case BLOCK_VERSION_GROESTL:
-            return ALGO_GROESTL;
         case BLOCK_VERSION_SHA256D:
             return ALGO_SHA256D;
+        case BLOCK_VERSION_GROESTL:
+            return ALGO_GROESTL;
     }
-    return ALGO_SCRYPT;
+    return ALGO_SHA256D;
 }
 
 inline std::string GetAlgoName(int Algo)
 {
     switch (Algo)
     {
-        case ALGO_SCRYPT:
-            return std::string("scrypt");
-        case ALGO_GROESTL:
-            return std::string("groestl");
         case ALGO_SHA256D:
             return std::string("sha256d");
+        case ALGO_GROESTL:
+            return std::string("groestl");
     }
     return std::string("unknown");
 }
@@ -882,7 +877,7 @@ public:
  * Blocks are appended to blk0001.dat files on disk.  Their location on disk
  * is indexed by CBlockIndex objects in memory.
  */
-class CBlock
+class CBlockHeader
 {
 public:
     // header
@@ -894,6 +889,60 @@ public:
     unsigned int nBits;
     unsigned int nNonce;
 
+    CBlockHeader()
+    {
+        SetNull();
+    }
+
+    IMPLEMENT_SERIALIZE
+    (
+        READWRITE(this->nVersion);
+        nVersion = this->nVersion;
+        READWRITE(hashPrevBlock);
+        READWRITE(hashMerkleRoot);
+        READWRITE(nTime);
+        READWRITE(nBits);
+        READWRITE(nNonce);
+    )
+
+    void SetNull()
+    {
+        nVersion = CBlockHeader::CURRENT_VERSION;
+        hashPrevBlock = 0;
+        hashMerkleRoot = 0;
+        nTime = 0;
+        nBits = 0;
+        nNonce = 0;
+    }
+
+    bool IsNull() const
+    {
+        return (nBits == 0);
+    }
+
+    uint256 GetHash(int algo=ALGO_SHA256D) const
+    {
+        switch (algo)
+        {
+            case ALGO_SHA256D:
+                return Hash(BEGIN(nVersion), END(nNonce));
+            case ALGO_GROESTL:
+                return HashGroestl(BEGIN(nVersion), END(nNonce));
+        }
+        return GetHash();
+    }
+
+    int64 GetBlockTime() const
+    {
+        return (int64)nTime;
+    }
+
+    void UpdateTime(const CBlockIndex* pindexPrev);
+};
+
+class CBlock : public CBlockHeader
+{
+public:
     // network and disk
     std::vector<CTransaction> vtx;
 
@@ -916,13 +965,7 @@ public:
 
     IMPLEMENT_SERIALIZE
     (
-        READWRITE(this->nVersion);
-        nVersion = this->nVersion;
-        READWRITE(hashPrevBlock);
-        READWRITE(hashMerkleRoot);
-        READWRITE(nTime);
-        READWRITE(nBits);
-        READWRITE(nNonce);
+        READWRITE(*(CBlockHeader*)this);
 
         // ConnectBlock depends on vtx following header to generate CDiskTxPos
         if (!(nType & (SER_GETHASH|SER_BLOCKHEADERONLY)))
@@ -939,13 +982,8 @@ public:
 
     void SetNull()
     {
-        nVersion = CBlock::CURRENT_VERSION;
-        hashPrevBlock = 0;
-        hashMerkleRoot = 0;
-        nTime = 0;
-        nBits = 0;
-        nNonce = 0;
-        vtx.clear();
+    	CBlockHeader::SetNull();
+    	vtx.clear();
         vchBlockSig.clear();
         vMerkleTree.clear();
         nDoS = 0;
@@ -954,27 +992,6 @@ public:
     bool IsNull() const
     {
         return (nBits == 0);
-    }
-
-    uint256 GetHash() const
-    {
-        uint256 thash;
-        scrypt_1024_1_1_256(BEGIN(nVersion), BEGIN(thash));
-        return thash;
-    }
-
-    uint256 GetPoWHash(int algo) const
-    {
-        switch (algo)
-        {
-            case ALGO_SCRYPT:
-                return GetHash();
-            case ALGO_GROESTL:
-                return HashGroestl(BEGIN(nVersion), END(nNonce));
-            case ALGO_SHA256D:
-                return Hash(BEGIN(nVersion), END(nNonce));
-        }
-        return GetHash();
     }
 
     int64 GetBlockTime() const
@@ -1029,6 +1046,18 @@ public:
         BOOST_FOREACH(const CTransaction& tx, vtx)
             maxTransactionTime = std::max(maxTransactionTime, (int64)tx.nTime);
         return maxTransactionTime;
+    }
+
+    CBlockHeader GetBlockHeader() const
+    {
+        CBlockHeader block;
+        block.nVersion       = nVersion;
+        block.hashPrevBlock  = hashPrevBlock;
+        block.hashMerkleRoot = hashMerkleRoot;
+        block.nTime          = nTime;
+        block.nBits          = nBits;
+        block.nNonce         = nNonce;
+        return block;
     }
 
     uint256 BuildMerkleTree() const
@@ -1108,7 +1137,7 @@ public:
         return true;
     }
 
-    bool ReadFromDisk(unsigned int nFile, unsigned int nBlockPos, bool fReadTransactions=true)
+    bool ReadFromDisk(unsigned int nFile, unsigned int nBlockPos, bool fReadTransactions=true, bool fCheckPOW=true)
     {
         SetNull();
 
@@ -1128,7 +1157,7 @@ public:
         }
 
         // Check the header
-        if (fReadTransactions && IsProofOfWork() && !CheckProofOfWork(GetPoWHash(GetAlgo()), nBits, GetAlgo()))
+        if (fReadTransactions && IsProofOfWork() && fCheckPOW && !CheckProofOfWork(GetHash(GetAlgo()), nBits))
             return error("CBlock::ReadFromDisk() : errors in block header");
 
         return true;
@@ -1139,7 +1168,7 @@ public:
         printf("CBlock(hash=%s, ver=%d, algo=%d, mined_hash=%s, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nBits=%08x, nNonce=%u, vtx=%"PRIszu", vchBlockSig=%s)\n",
             GetHash().ToString().c_str(),
             nVersion, GetAlgo(),
-            GetPoWHash(GetAlgo()).ToString().c_str(),
+            GetHash(GetAlgo()).ToString().c_str(),
             hashPrevBlock.ToString().c_str(),
             hashMerkleRoot.ToString().c_str(),
             nTime, nBits, nNonce,
@@ -1162,11 +1191,11 @@ public:
     bool ReadFromDisk(const CBlockIndex* pindex, bool fReadTransactions=true);
     bool SetBestChain(CTxDB& txdb, CBlockIndex* pindexNew);
     bool AddToBlockIndex(unsigned int nFile, unsigned int nBlockPos);
-    bool CheckBlock(bool fCheckPOW=true, bool fCheckMerkleRoot=true) const;
+    bool CheckBlock(bool fCheckPOW=true, bool fCheckMerkleRoot=true, bool fCheckSig=true) const;
     bool AcceptBlock();
     bool GetCoinAge(uint64& nCoinAge) const; // ppcoin: calculate total coin age spent in block
     bool SignBlock(const CKeyStore& keystore);
-    bool CheckBlockSignature() const;
+    bool CheckBlockSignature(int nHeight) const;
 
 private:
     bool SetBestChainInner(CTxDB& txdb, CBlockIndex *pindexNew);
@@ -1702,5 +1731,132 @@ public:
 };
 
 extern CTxMemPool mempool;
+
+
+
+
+/** Data structure that represents a partial merkle tree.
+ *
+ * It respresents a subset of the txid's of a known block, in a way that
+ * allows recovery of the list of txid's and the merkle root, in an
+ * authenticated way.
+ *
+ * The encoding works as follows: we traverse the tree in depth-first order,
+ * storing a bit for each traversed node, signifying whether the node is the
+ * parent of at least one matched leaf txid (or a matched txid itself). In
+ * case we are at the leaf level, or this bit is 0, its merkle node hash is
+ * stored, and its children are not explorer further. Otherwise, no hash is
+ * stored, but we recurse into both (or the only) child branch. During
+ * decoding, the same depth-first traversal is performed, consuming bits and
+ * hashes as they written during encoding.
+ *
+ * The serialization is fixed and provides a hard guarantee about the
+ * encoded size:
+ *
+ *   SIZE <= 10 + ceil(32.25*N)
+ *
+ * Where N represents the number of leaf nodes of the partial tree. N itself
+ * is bounded by:
+ *
+ *   N <= total_transactions
+ *   N <= 1 + matched_transactions*tree_height
+ *
+ * The serialization format:
+ *  - uint32     total_transactions (4 bytes)
+ *  - varint     number of hashes   (1-3 bytes)
+ *  - uint256[]  hashes in depth-first order (<= 32*N bytes)
+ *  - varint     number of bytes of flag bits (1-3 bytes)
+ *  - byte[]     flag bits, packed per 8 in a byte, least significant bit first (<= 2*N-1 bits)
+ * The size constraints follow from this.
+ */
+class CPartialMerkleTree
+{
+protected:
+    // the total number of transactions in the block
+    unsigned int nTransactions;
+
+    // node-is-parent-of-matched-txid bits
+    std::vector<bool> vBits;
+
+    // txids and internal hashes
+    std::vector<uint256> vHash;
+
+    // flag set when encountering invalid data
+    bool fBad;
+
+    // helper function to efficiently calculate the number of nodes at given height in the merkle tree
+    unsigned int CalcTreeWidth(int height) {
+        return (nTransactions+(1 << height)-1) >> height;
+    }
+
+    // calculate the hash of a node in the merkle tree (at leaf level: the txid's themself)
+    uint256 CalcHash(int height, unsigned int pos, const std::vector<uint256> &vTxid);
+
+    // recursive function that traverses tree nodes, storing the data as bits and hashes
+    void TraverseAndBuild(int height, unsigned int pos, const std::vector<uint256> &vTxid, const std::vector<bool> &vMatch);
+
+    // recursive function that traverses tree nodes, consuming the bits and hashes produced by TraverseAndBuild.
+    // it returns the hash of the respective node.
+    uint256 TraverseAndExtract(int height, unsigned int pos, unsigned int &nBitsUsed, unsigned int &nHashUsed, std::vector<uint256> &vMatch);
+
+public:
+
+    // serialization implementation
+    IMPLEMENT_SERIALIZE(
+        READWRITE(nTransactions);
+        READWRITE(vHash);
+        std::vector<unsigned char> vBytes;
+        if (fRead) {
+            READWRITE(vBytes);
+            CPartialMerkleTree &us = *(const_cast<CPartialMerkleTree*>(this));
+            us.vBits.resize(vBytes.size() * 8);
+            for (unsigned int p = 0; p < us.vBits.size(); p++)
+                us.vBits[p] = (vBytes[p / 8] & (1 << (p % 8))) != 0;
+            us.fBad = false;
+        } else {
+            vBytes.resize((vBits.size()+7)/8);
+            for (unsigned int p = 0; p < vBits.size(); p++)
+                vBytes[p / 8] |= vBits[p] << (p % 8);
+            READWRITE(vBytes);
+        }
+    )
+
+    // Construct a partial merkle tree from a list of transaction id's, and a mask that selects a subset of them
+    CPartialMerkleTree(const std::vector<uint256> &vTxid, const std::vector<bool> &vMatch);
+
+    CPartialMerkleTree();
+
+    // extract the matching txid's represented by this partial merkle tree.
+    // returns the merkle root, or 0 in case of failure
+    uint256 ExtractMatches(std::vector<uint256> &vMatch);
+};
+
+/** Used to relay blocks as header + vector<merkle branch>
+ * to filtered nodes.
+ */
+class CMerkleBlock
+{
+public:
+    // Public only for unit testing
+    CBlockHeader
+     header;
+    CPartialMerkleTree txn;
+
+public:
+    // Public only for unit testing and relay testing
+    // (not relayed)
+    std::vector<std::pair<unsigned int, uint256> > vMatchedTxn;
+
+    // Create from a CBlock, filtering transactions according to filter
+    // Note that this will call IsRelevantAndUpdate on the filter for each transaction,
+    // thus the filter will likely be modified.
+    CMerkleBlock(const CBlock& block, CBloomFilter& filter);
+
+    IMPLEMENT_SERIALIZE
+    (
+        READWRITE(header);
+        READWRITE(txn);
+    )
+};
 
 #endif
