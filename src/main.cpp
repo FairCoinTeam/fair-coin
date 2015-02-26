@@ -50,7 +50,7 @@ unsigned int nStakeMaxAge = 60 * 60 * 24 * 90; // stake age of full weight (90 d
 unsigned int nStakeTargetSpacing = 10 * 60; // 10 minute block spacing
 unsigned int nProofOfWorkTargetSpacing = 5 * 60; // 5 minutes PoW block spacing
 
-CBitcoinAddress recoveryAddress("fairToRTehuSrskfG63xkFAZrzbxf85B82");
+CBitcoinAddress recoveryAddress("fRecovr5RiYKSh9hAJYR1jmTMapWMnBxRm");
 
 int64 nChainStartTime = 1389138959;
 int nCoinbaseMaturity = 5;
@@ -2767,7 +2767,7 @@ int LoadBlockIndex(bool fAllowNew)
         block.nVersion = BLOCK_VERSION_DEFAULT | BLOCK_VERSION_GROESTL;
         block.nTime    = nChainStartTime + 15;
         block.nBits    = bnProofOfWorkLimit.GetCompact();
-        block.nNonce   = fTestNet ? 81202 : 1965579;
+        block.nNonce   = fTestNet ? 280528 : 102078;
 
 #if 0
         if (block.GetHash() != hashGenesisBlock) {
@@ -2801,8 +2801,8 @@ int LoadBlockIndex(bool fAllowNew)
 
         assert(block.hashMerkleRoot ==
             (fTestNet ?
-                uint256("5d687883c494ab7b2f1a53f79643d3d6f3e2571b754f38a8f27f44408d16022b") :
-                uint256("a641eef709de91919e635073d8dca16fa6efba8c2bfd1ccc644d75d0eebf1c17") ));
+                uint256("f7bd4444094315d1f7ef3f3dcc47d5f1ef170386825d0749aa563ce7c12e2482") :
+                uint256("5db78d1049188903c21c8e5eeb2bd230598977b642d687e8ab16b91dd3485703") ));
 
         assert(block.GetHash() == hashGenesisBlock);
 

@@ -48,8 +48,8 @@ static const int fHaveUPnP = true;
 static const int fHaveUPnP = false;
 #endif
 
-static const uint256 hashGenesisBlockOfficial("cab42ddd9d6cc5a2df3c53ec301ab615c6cd56e023a52bc3751d4817683fec55");
-static const uint256 hashGenesisBlockTestNet ("7e5e6a6591dfd112a1a43014404751aae6b3db1bc804bc43a0a4f9f1f95dbf80");
+static const uint256 hashGenesisBlockOfficial("f1ae188b0c08e296e45980f9913f6ad2304ff02d5293538275bacdbcb05ef275");
+static const uint256 hashGenesisBlockTestNet ("5df7281a262d9a6251e65d12bdb78c6a69041c7d28e209df2a7719059de3088c");
 
 // the sha256 hash of the old genesis block
 static const uint256 hashOldGenesisBlockOfficial("02324da28f3830a20d47b91f6a7222f2e24fd07b3be76f572ccb6de8a20811b4");

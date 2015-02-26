@@ -1736,8 +1736,13 @@ Value makekeypair(const Array& params, bool fHelp)
     key.MakeNewKey(false);
 
     CPrivKey vchPrivKey = key.GetPrivKey();
+
+    bool fCompressed = false;
+    CSecret vchSecret = key.GetSecret(fCompressed);
+
     Object result;
     result.push_back(Pair("PrivateKey", HexStr<CPrivKey::iterator>(vchPrivKey.begin(), vchPrivKey.end())));
+    result.push_back(Pair("PrivateKeyBase58", CBitcoinSecret(vchSecret, fCompressed).ToString()));
     result.push_back(Pair("PublicKey", HexStr(key.GetPubKey().Raw())));
     return result;
 }
