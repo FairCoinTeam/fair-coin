@@ -1,0 +1,2 @@
+For build instructions see README.md
+
