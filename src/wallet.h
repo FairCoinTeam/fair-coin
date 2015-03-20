@@ -20,7 +20,6 @@
 
 #include <boost/algorithm/string.hpp>
 
-extern bool fWalletUnlockMintOnly;
 class CAccountingEntry;
 class CWalletTx;
 class CReserveKey;
@@ -86,6 +85,8 @@ public:
     mutable CCriticalSection cs_wallet;
 
     bool fFileBacked;
+    bool fUnlockedForMintingOnly;
+
     std::string strWalletFile;
 
     std::set<int64> setKeyPool;
@@ -100,6 +101,7 @@ public:
         nWalletVersion = FEATURE_BASE;
         nWalletMaxVersion = FEATURE_BASE;
         fFileBacked = false;
+        fUnlockedForMintingOnly = false;
         nMasterKeyMaxID = 0;
         pwalletdbEncryption = NULL;
         nOrderPosNext = 0;
@@ -110,6 +112,7 @@ public:
         nWalletMaxVersion = FEATURE_BASE;
         strWalletFile = strWalletFileIn;
         fFileBacked = true;
+        fUnlockedForMintingOnly = false;
         nMasterKeyMaxID = 0;
         pwalletdbEncryption = NULL;
         nOrderPosNext = 0;
@@ -148,7 +151,8 @@ public:
     bool AddCScript(const CScript& redeemScript);
     bool LoadCScript(const CScript& redeemScript) { return CCryptoKeyStore::AddCScript(redeemScript); }
 
-    bool Unlock(const SecureString& strWalletPassphrase);
+    bool Lock();
+    bool Unlock(const SecureString& strWalletPassphrase, bool fUnlockForMintingOnly);
     bool ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase, const SecureString& strNewWalletPassphrase);
     bool EncryptWallet(const SecureString& strWalletPassphrase);
 

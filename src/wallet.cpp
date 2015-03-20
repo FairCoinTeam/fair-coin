@@ -82,11 +82,14 @@ bool CWallet::AddCScript(const CScript& redeemScript)
     return CWalletDB(strWalletFile).WriteCScript(Hash160(redeemScript), redeemScript);
 }
 
-// ppcoin: optional setting to unlock wallet for block minting only;
-//         serves to disable the trivial sendmoney when OS account compromised
-bool fWalletUnlockMintOnly = false;
+bool CWallet::Lock()
+{
+    fUnlockedForMintingOnly = false;
 
-bool CWallet::Unlock(const SecureString& strWalletPassphrase)
+    return CCryptoKeyStore::Lock();
+}
+
+bool CWallet::Unlock(const SecureString& strWalletPassphrase, bool fUnlockForMintingOnly)
 {
     if (!IsLocked())
         return false;
@@ -103,7 +106,10 @@ bool CWallet::Unlock(const SecureString& strWalletPassphrase)
             if (!crypter.Decrypt(pMasterKey.second.vchCryptedKey, vMasterKey))
                 return false;
             if (CCryptoKeyStore::Unlock(vMasterKey))
+            {
+                fUnlockedForMintingOnly = fUnlockForMintingOnly;
                 return true;
+            }
         }
     }
     return false;
@@ -284,7 +290,7 @@ bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
         }
 
         Lock();
-        Unlock(strWalletPassphrase);
+        Unlock(strWalletPassphrase, false);
         NewKeyPool();
         Lock();
 
@@ -1633,7 +1639,7 @@ string CWallet::SendMoney(CScript scriptPubKey, int64 nValue, CWalletTx& wtxNew,
         printf("SendMoney() : %s", strError.c_str());
         return strError;
     }
-    if (fWalletUnlockMintOnly)
+    if (fUnlockedForMintingOnly)
     {
         string strError = _("Error: Wallet unlocked for block minting only, unable to create transaction.");
         printf("SendMoney() : %s", strError.c_str());

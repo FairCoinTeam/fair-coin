@@ -21,7 +21,7 @@ public:
         Unlock,			/**< Ask passphrase and unlock */
         ChangePass,		/**< Ask old passphrase + new passphrase twice */
         Decrypt,		/**< Ask passphrase and decrypt wallet */
-        UnlockMinting,	/**< Ask passphrase and unlock for minting */
+        UnlockForMinting,	/**< Ask passphrase and unlock for minting */
     };
 
     explicit AskPassphraseDialog(Mode mode, QWidget *parent = 0);

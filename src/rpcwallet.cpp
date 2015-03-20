@@ -28,7 +28,7 @@ void EnsureWalletIsUnlocked()
 {
     if (pwalletMain->IsLocked())
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
-    if (fWalletUnlockMintOnly)
+    if (pwalletMain->fUnlockedForMintingOnly)
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Wallet unlocked for block minting only.");
 }
 
@@ -1407,7 +1407,12 @@ Value walletpassphrase(const Array& params, bool fHelp)
 
     if (strWalletPass.length() > 0)
     {
-        if (!pwalletMain->Unlock(strWalletPass))
+        bool fWalletUnlockMintOnly = false;
+
+        if (params.size() > 2)
+            fWalletUnlockMintOnly = params[2].get_bool();
+
+        if (!pwalletMain->Unlock(strWalletPass, fWalletUnlockMintOnly))
             throw JSONRPCError(RPC_WALLET_PASSPHRASE_INCORRECT, "Error: The wallet passphrase entered was incorrect.");
     }
     else
@@ -1418,12 +1423,6 @@ Value walletpassphrase(const Array& params, bool fHelp)
     NewThread(ThreadTopUpKeyPool, NULL);
     int64* pnSleepTime = new int64(params[1].get_int64());
     NewThread(ThreadCleanWalletPassphrase, pnSleepTime);
-
-    // ppcoin: if user OS account compromised prevent trivial sendmoney commands
-    if (params.size() > 2)
-        fWalletUnlockMintOnly = params[2].get_bool();
-    else
-        fWalletUnlockMintOnly = false;
 
     return Value::null;
 }
