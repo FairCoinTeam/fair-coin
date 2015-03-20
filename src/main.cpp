@@ -67,7 +67,6 @@ CMedianFilter<int> cPeerBlockCounts(5, 0); // Amount of blocks that other nodes 
 map<uint256, CBlock*> mapOrphanBlocks;
 multimap<uint256, CBlock*> mapOrphanBlocksByPrev;
 set<pair<COutPoint, unsigned int> > setStakeSeenOrphan;
-map<uint256, uint256> mapProofOfStake;
 
 map<uint256, CDataStream*> mapOrphanTransactions;
 map<uint256, map<uint256, CDataStream*> > mapOrphanTransactionsByPrev;
@@ -1984,7 +1983,7 @@ bool CBlock::GetCoinAge(uint64& nCoinAge) const
     return true;
 }
 
-bool CBlock::AddToBlockIndex(unsigned int nFile, unsigned int nBlockPos)
+bool CBlock::AddToBlockIndex(unsigned int nFile, unsigned int nBlockPos, const uint256& hashProofOfStake)
 {
     // Check for duplicate
     uint256 hash = GetHash();
@@ -2011,12 +2010,7 @@ bool CBlock::AddToBlockIndex(unsigned int nFile, unsigned int nBlockPos)
         return error("AddToBlockIndex() : SetStakeEntropyBit() failed");
 
     // ppcoin: record proof-of-stake hash value
-    if (pindexNew->IsProofOfStake())
-    {
-        if (!mapProofOfStake.count(hash))
-            return error("AddToBlockIndex() : hashProofOfStake not found in map");
-        pindexNew->hashProofOfStake = mapProofOfStake[hash];
-    }
+    pindexNew->hashProofOfStake = hashProofOfStake;
 
     // ppcoin: compute stake modifier
     uint64 nStakeModifier = 0;
@@ -2182,6 +2176,16 @@ bool CBlock::AcceptBlock()
     if (!Checkpoints::CheckHardened(nHeight, hash))
         return DoS(100, error("AcceptBlock() : rejected by hardened checkpoint lock-in at %d", nHeight));
 
+    // Verify hash target and signature of coinstake tx
+    uint256 hashProofOfStake = 0;
+    if (IsProofOfStake())
+    {
+        if (!CheckProofOfStake(vtx[1], nBits, hashProofOfStake))
+        {
+            printf("WARNING: ProcessBlock(): check proof-of-stake failed for block %s\n", hash.ToString().c_str());
+            return false; // do not error here as we expect this during initial block download
+        }
+    }
     // ppcoin: check that the block satisfies synchronized checkpoint
     if (!Checkpoints::CheckSync(hash, pindexPrev))
     {
@@ -2211,7 +2215,7 @@ bool CBlock::AcceptBlock()
     unsigned int nBlockPos = 0;
     if (!WriteToDisk(nFile, nBlockPos))
         return error("AcceptBlock() : WriteToDisk failed");
-    if (!AddToBlockIndex(nFile, nBlockPos))
+    if (!AddToBlockIndex(nFile, nBlockPos, hashProofOfStake))
         return error("AcceptBlock() : AddToBlockIndex failed");
 
     // Relay inventory, but don't relay old inventory during initial block download
@@ -2260,19 +2264,6 @@ bool ProcessBlock(CNode* pfrom, CBlock* pblock)
     // Preliminary checks
     if (!pblock->CheckBlock(nBestHeight > HARD_FORK_HEIGHT_N01 || fTestNet))
         return error("ProcessBlock() : CheckBlock FAILED");
-
-    // ppcoin: verify hash target and signature of coinstake tx
-    if (pblock->IsProofOfStake())
-    {
-        uint256 hashProofOfStake = 0;
-        if (!CheckProofOfStake(pblock->vtx[1], pblock->nBits, hashProofOfStake))
-        {
-            printf("WARNING: ProcessBlock(): check proof-of-stake failed for block %s\n", hash.ToString().c_str());
-            return false; // do not error here as we expect this during initial block download
-        }
-        if (!mapProofOfStake.count(hash)) // add to mapProofOfStake
-            mapProofOfStake.insert(make_pair(hash, hashProofOfStake));
-    }
 
     CBlockIndex* pcheckpoint = Checkpoints::GetLastSyncCheckpoint();
     if (pcheckpoint && pblock->hashPrevBlock != hashBestChain && !Checkpoints::WantedByPendingSyncCheckpoint(hash))
@@ -2812,7 +2803,7 @@ int LoadBlockIndex(bool fAllowNew)
         unsigned int nBlockPos;
         if (!block.WriteToDisk(nFile, nBlockPos))
             return error("LoadBlockIndex() : writing genesis block to disk failed");
-        if (!block.AddToBlockIndex(nFile, nBlockPos))
+        if (!block.AddToBlockIndex(nFile, nBlockPos, 0))
             return error("LoadBlockIndex() : genesis block not accepted");
 
         // ppcoin: initialize synchronized checkpoint
@@ -2876,24 +2867,24 @@ void PrintBlockTree()
         {
             for (int i = 0; i < nCol-1; i++)
                 printf("| ");
-            puts("|\\\n");
+            printf("|\\\n");
         }
         else if (nCol < nPrevCol)
         {
             for (int i = 0; i < nCol; i++)
                 printf("| ");
-            puts("|\n");
-       }
+            printf("|\n");
+        }
         nPrevCol = nCol;
 
         // print columns
         for (int i = 0; i < nCol; i++)
-        	puts("| ");
+            printf("| ");
 
         // print item
         CBlock block;
         block.ReadFromDisk(pindex);
-        printf("\nBLOCK: %d (%u,%u) %s %s %08x %08x %s mint %7s tx %"PRIszu"",
+        printf("BLOCK: %d (%u,%u) %s %s %08x %08x %s mint %7s tx %"PRIszu"",
             pindex->nHeight,
             pindex->nFile,
             pindex->nBlockPos,
@@ -2906,6 +2897,7 @@ void PrintBlockTree()
             block.vtx.size());
 
         PrintWallets(block);
+        printf("\n");
 
         // put the main time-chain first
         vector<CBlockIndex*>& vNext = mapNext[pindex];
@@ -2922,8 +2914,6 @@ void PrintBlockTree()
         for (unsigned int i = 0; i < vNext.size(); i++)
             vStack.push_back(make_pair(nCol+i, vNext[i]));
     }
-
-    puts("\n");
 }
 
 void ConvertBlock(CBlock* pblock, CKey key)
