@@ -351,8 +351,10 @@ int CTxDB::LoadBlockIndex()
 
         uint256 blockHash = diskindex.GetBlockHash();
 
-        if (blockHash == hashOldGenesisBlockOfficial)
+        if (blockHash == hashOldGenesisBlockOfficial) {
+            delete iterator;
             return LOAD_BLOCK_INDEX_OLD_CHAIN;
+        }
 
         // Construct block index object
         CBlockIndex* pindexNew      = InsertBlockIndex(blockHash);
@@ -381,6 +383,11 @@ int CTxDB::LoadBlockIndex()
         if (!pindexNew->CheckIndex()) {
             delete iterator;
             return error("LoadBlockIndex() : CheckIndex failed at %d", pindexNew->nHeight);
+        }
+
+        if (pindexNew->nHeight > HARD_FORK_HEIGHT_N01 && pindexNew->IsProofOfStake() && pindexNew->hashProofOfStake == 0) {
+            delete iterator;
+            return LOAD_BLOCK_INDEX_ERROR_CORRUPTED_BLOCK_CHAIN;
         }
 
         // FairCoin: build setStakeSeen
@@ -437,7 +444,6 @@ int CTxDB::LoadBlockIndex()
     ReadBestInvalidTrust(bnBestInvalidTrust);
 
     // Verify blocks in the best chain
-    int lastHardenedCheckpoint = Checkpoints::GetTotalBlocksEstimate();
     int nCheckLevel = GetArg("-checklevel", 1);
     int nCheckDepth = GetArg( "-checkblocks", 2500);
     if (nCheckDepth == 0)
@@ -463,11 +469,6 @@ int CTxDB::LoadBlockIndex()
             printf("LoadBlockIndex() : *** found bad block at %d, hash=%s\n", pindex->nHeight, pindex->GetBlockHash().ToString().c_str());
             pindexFork = pindex->pprev;
         }
-        if (pindex->nHeight <= lastHardenedCheckpoint && !Checkpoints::CheckHardened(pindex->nHeight, pindex->GetBlockHash())) {
-            printf("LoadBlockIndex() : *** found bad block(fails hardened checkpoint test) at %d, hash=%s\n", pindex->nHeight, pindex->GetBlockHash().ToString().c_str());
-            Checkpoints::SetHackReload(true);
-        }
-
         // check level 2: verify transaction index validity
         if (nCheckLevel>1)
         {

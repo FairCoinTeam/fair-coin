@@ -19,7 +19,8 @@ enum
 {
     LOAD_BLOCK_INDEX_ERROR = 0,
     LOAD_BLOCK_INDEX_OK  = 1,
-    LOAD_BLOCK_INDEX_OLD_CHAIN = 2
+    LOAD_BLOCK_INDEX_OLD_CHAIN = 2,
+    LOAD_BLOCK_INDEX_ERROR_CORRUPTED_BLOCK_CHAIN = 3
 };
 
 // Class that provides access to a LevelDB. Note that this class is frequently

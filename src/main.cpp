@@ -2826,12 +2826,6 @@ int LoadBlockIndex(bool fAllowNew)
             if ((!fTestNet) && !Checkpoints::ResetSyncCheckpoint())
                 return error("LoadBlockIndex() : failed to reset sync-checkpoint");
         } 
-
-         if (Checkpoints::GetHackReload()) {
-            printf("%s\n", "Invalid blockchain, resetting sync checkpoint");
-            Checkpoints::SetHackReload(false);
-            Checkpoints::ResetSyncCheckpoint();
-        } 
     }
 
     return true;

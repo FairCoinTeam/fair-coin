@@ -653,8 +653,11 @@ bool AppInit2()
     if (GetBoolArg("-loadblockindextest"))
     {
         CTxDB txdb("r");
-        txdb.LoadBlockIndex();
-        PrintBlockTree();
+        int res = txdb.LoadBlockIndex();
+        if (res == LOAD_BLOCK_INDEX_OK) {
+            PrintBlockTree();
+        } else
+            printf("ERROR: could not load block index, error code %d\n", res);
         return false;
     }
 
@@ -668,8 +671,15 @@ bool AppInit2()
     }
     else if (res == LOAD_BLOCK_INDEX_OLD_CHAIN)
     {
-        string msg = strprintf(_("Old block chain data detected in directory %s  "
+        string msg = strprintf(_("Old block chain data detected in directory %s\n"
                                  "Please delete the file 'blk0001.dat' and the folder 'txleveldb' "
+                                 "and restart your wallet."), strDataDir.c_str());
+        return InitError(msg);
+    }
+    else if (res == LOAD_BLOCK_INDEX_ERROR_CORRUPTED_BLOCK_CHAIN)
+    {
+        string msg = strprintf(_("Corrupted block index detected in directory %s\n"
+                                 "Please rename the file 'blk0001.dat' to 'bootstrap.dat', delete the folder 'txleveldb' "
                                  "and restart your wallet."), strDataDir.c_str());
         return InitError(msg);
     }

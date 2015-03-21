@@ -28,24 +28,13 @@ namespace Checkpoints
         (   40000,  uint256("5346de84305836f881fb15a884088286bf23d3361e8e1e9d0b58916c46817801"))
         (   80000,  uint256("f6f8b3d1334057117fddc385dabfbc3bce3826e170985c804af914db99a1f7f6"))
         (   94614,  uint256("31d3eef28d9c6c1a15d7b12571d93ab563cbd661f06a2d47d2fb0323e6fca1aa"))
+        (  102566,  uint256("da0df1c33a8d98bca5d8a6e07c02497d73345496d04ada14878dfd2c55618925"))
         ;
 
     static MapCheckpoints mapCheckpointsTestnet =
         boost::assign::map_list_of
         ( 0, hashGenesisBlockTestNet )
         ;
-
-    static bool HACK_RELOAD = false;
-
-    void SetHackReload(bool val)
-    {
-        HACK_RELOAD = val;
-    }
-
-    bool GetHackReload()
-    {
-        return HACK_RELOAD;
-    }
 
     bool CheckHardened(int nHeight, const uint256& hash)
     {
