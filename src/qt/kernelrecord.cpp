@@ -16,11 +16,6 @@ bool KernelRecord::showTransaction(const CWalletTx &wtx)
         }
     }
 
-    if(!wtx.IsConfirmed())
-    {
-        return false;
-    }
-
     return true;
 }
 
@@ -57,7 +52,7 @@ vector<KernelRecord> KernelRecord::decomposeOutput(const CWallet *wallet, const 
                     addrStr = mapValue["to"];
                 }
 
-                parts.push_back(KernelRecord(hash, nTime, addrStr, txOut.nValue, wtx.IsSpent(nOut), coinAge));
+                parts.push_back(KernelRecord(hash, nTime, addrStr, txOut.nValue, nOut, wtx.IsSpent(nOut), coinAge));
             }
         }
     }
