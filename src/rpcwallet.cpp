@@ -6,6 +6,7 @@
 #include "wallet.h"
 #include "walletdb.h"
 #include "bitcoinrpc.h"
+#include "coincontrol.h"
 #include "init.h"
 #include "base58.h"
 
@@ -689,9 +690,9 @@ Value sendfrom(const Array& params, bool fHelp)
 
 Value sendmany(const Array& params, bool fHelp)
 {
-    if (fHelp || params.size() < 2 || params.size() > 4)
+    if (fHelp || params.size() < 2 || params.size() > 5)
         throw runtime_error(
-            "sendmany <fromaccount> {address:amount,...} [minconf=1] [comment]\n"
+            "sendmany <fromaccount> {address:amount,...} [minconf=1] [comment] [change address]\n"
             "amounts are double-precision floating point numbers"
             + HelpRequiringPassphrase());
 
@@ -700,6 +701,11 @@ Value sendmany(const Array& params, bool fHelp)
     int nMinDepth = 1;
     if (params.size() > 2)
         nMinDepth = params[2].get_int();
+
+    CCoinControl coinControl;
+    if (params.size() > 3) {
+        coinControl.destChange = CBitcoinAddress(params[3].get_str()).Get();
+    }
 
     CWalletTx wtx;
     wtx.strFromAccount = strAccount;
@@ -742,13 +748,14 @@ Value sendmany(const Array& params, bool fHelp)
     // Send
     CReserveKey keyChange(pwalletMain);
     int64 nFeeRequired = 0;
-    bool fCreated = pwalletMain->CreateTransaction(vecSend, wtx, keyChange, nFeeRequired);
+    bool fCreated = pwalletMain->CreateTransaction(vecSend, wtx, keyChange, nFeeRequired, &coinControl);
     if (!fCreated)
     {
         if (totalAmount + nFeeRequired > pwalletMain->GetBalance())
             throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient funds");
         throw JSONRPCError(RPC_WALLET_ERROR, "Transaction creation failed");
     }
+
     if (!pwalletMain->CommitTransaction(wtx, keyChange))
         throw JSONRPCError(RPC_WALLET_ERROR, "Transaction commit failed");
 
