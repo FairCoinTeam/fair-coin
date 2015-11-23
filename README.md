@@ -27,7 +27,7 @@ Default RPC Port: 46393
 ```
 git clone https://github.com/FairCoinTeam/fair-coin.git  
 cd fair-coin  
-git checkout v1.5.1  
+git checkout v1.5.2  
 ./autogen.sh  
 ./configure --with-incompatible-bdb --disable-tests  
 make  
