@@ -64,7 +64,7 @@ double GetDifficulty(const CBlockIndex* blockindex)
 }
 
 
-Object blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool fPrintTransactionDetail)
+Object blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool fPrintTransactionDetail, bool fJSONFormat = true)
 {
     Object result;
     result.push_back(Pair("hash", block.GetHash().GetHex()));
@@ -95,14 +95,17 @@ Object blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool fPri
     Array txinfo;
     BOOST_FOREACH (const CTransaction& tx, block.vtx)
     {
-        if (fPrintTransactionDetail)
-        {
-            Object entry;
-
-            entry.push_back(Pair("txid", tx.GetHash().GetHex()));
-            TxToJSON(tx, 0, entry);
-
-            txinfo.push_back(entry);
+        if (fPrintTransactionDetail) {
+            if (fJSONFormat) {
+                Object entry;
+                TxToJSON(tx, 0, entry);
+                txinfo.push_back(entry);
+            } else {
+                CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
+                ssTx << tx;
+                string strHex = HexStr(ssTx.begin(), ssTx.end());
+                txinfo.push_back(strHex);
+            }
         }
         else
             txinfo.push_back(tx.GetHash().GetHex());
@@ -217,10 +220,11 @@ Value getblockhash(const Array& params, bool fHelp)
 
 Value getblock(const Array& params, bool fHelp)
 {
-    if (fHelp || params.size() < 1 || params.size() > 2)
+    if (fHelp || params.size() < 1 || params.size() > 3)
         throw runtime_error(
-            "getblock <hash> [txinfo]\n"
-            "txinfo optional to print more detailed tx info\n"
+            "getblock <hash> [txinfo] [txverbose]\n"
+            "txinfo optional to print the hex encoded transaction\n"
+            "txverbose optional to print the detailed tx info in json format. default: true\n"
             "Returns details of a block with given block-hash.");
 
     std::string strHash = params[0].get_str();
@@ -233,7 +237,7 @@ Value getblock(const Array& params, bool fHelp)
     CBlockIndex* pblockindex = mapBlockIndex[hash];
     block.ReadFromDisk(pblockindex, true);
 
-    return blockToJSON(block, pblockindex, params.size() > 1 ? params[1].get_bool() : false);
+    return blockToJSON(block, pblockindex, params.size() > 1 ? params[1].get_bool() : false, params.size() > 2 ? params[2].get_bool() : true);
 }
 
 Value getblockbynumber(const Array& params, bool fHelp)
