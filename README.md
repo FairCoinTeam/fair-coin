@@ -1,18 +1,17 @@
-# This tree is outdated and must not be used  
-This is the tree of FairCoin1 and was only valid until the 27th of June 2017  
+# This tree is outdated starting from 18th of July 2017 and must not be used afterwards 
+This is the tree of FairCoin1 and is only valid until the 18th of July 2017  
 
 The sources of the new FairCoin2 version can be found here:  
 https://github.com/faircoin/faircoin
 
 The text below is left here for archive purpose only.
 
-
-
-
-
-
-
-
+  
+  
+  
+  
+  
+  
 # FairCoin: promoting equality and a fair economy #
 
 * **For instructions to build the current version, please see the [build instructions](#user-content-build-instructions) below.**
