@@ -1,5 +1,5 @@
-# This tree is outdated starting from 18th of July 2017 and must not be used afterwards 
-This is the tree of FairCoin1 and is only valid until the 18th of July 2017  
+# This tree is outdated since the 18th of July 2017 and must no longer be used
+This is the tree of FairCoin1 which was used until the 18th of July 2017  
 
 The sources of the new FairCoin2 version can be found here:  
 https://github.com/faircoin/faircoin
